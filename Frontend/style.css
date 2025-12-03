@@ -1,0 +1,62 @@
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 20px;
+    background: #f5f5f5;
+}
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#signup-form {
+    display: grid;
+    grid-template-columns: repeat(1, 200px);  
+    grid-template-rows: repeat(3,75px);
+    justify-content: center;
+    gap: 0.5px;
+
+    max-width: 450px;   /* reduces overall width */
+    width: 100%;        /* allows responsive shrink */
+    margin: 0 auto;     /* centers the grid */
+
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+form input,button{
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-top: 10px;
+}
+#submit-btn {
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+    border: none;
+    transition: 0.3s;
+}
+#submit-btn:hover {
+    background: #0056b3;
+    transform: scale(1.05);
+}
+.extra-links {
+    grid-column: 1 / -1;     /* full row */
+    text-align: center;
+    margin-top: 10px;
+}
+#google-btn {
+    margin-top: 10px;
+    padding: 10px 15px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+#login-link {
+    color: blue;
+    text-decoration: none;
+    cursor: pointer;
+}
+
