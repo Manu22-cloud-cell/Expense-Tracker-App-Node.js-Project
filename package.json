@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Manu22-cloud-cell/Expense-Tracker-App-Node.js-Project#readme",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "mysql2": "^3.15.3",
