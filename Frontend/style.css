@@ -47,21 +47,40 @@ form input,button{
     text-align: center;
     margin-top: 10px;
 }
-#google-btn {
-    margin-top: 10px;
-    padding: 10px 15px;
-    font-size: 15px;
-    cursor: pointer;
-    transition: 0.3s;
-}
+
 #login-link {
     color: blue;
-    text-decoration: none;
+    text-decoration: underline;
     cursor: pointer;
 }
 #message {
     margin-top: 15px;
     text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+#login-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 350px;
+    margin: 30px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#login-form button {
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#login-message {
+    text-align: center;
+    margin-top: 15px;
     font-size: 16px;
     font-weight: 500;
 }
@@ -72,5 +91,16 @@ form input,button{
 
 .error {
     color: red;
+}
+
+.signup-link {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.signup-link a {
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
 }
 
