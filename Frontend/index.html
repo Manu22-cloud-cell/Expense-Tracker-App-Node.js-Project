@@ -8,10 +8,10 @@
 </head>
 <body>
     <h1>Expense Tracker App</h1>
-    <form id="signup-form">
+    <form onsubmit="handleFormSubmit(event)" id="signup-form">
         <div>
-        <label for="name">Name</label>
-        <input type="text" id="name" name="name" placeholder="Enter your name" required>
+        <label for="userName">Name</label>
+        <input type="text" id="userName" name="userName" placeholder="Enter your name" required>
         </div>
 
         <div>
@@ -32,6 +32,10 @@
         <button type="button" id="google-btn">Sign Up with Google</button>
     </div>
     </form>
+    <div id="message"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"></script>
+    <script src="index.js"></script>
     
 </body>
 </html>
