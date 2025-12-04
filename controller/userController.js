@@ -6,8 +6,11 @@ const userSignUp = async (req,res)=>{
     try {
     const {userName,email,password}=req.body;
 
+    // Convert email to lowercase before saving
+    const normalizedEmail=email.toLowerCase();
+
     //check if user already exist
-    const existingUser=await Users.findOne({where:{email}});
+    const existingUser=await Users.findOne({where:{email:normalizedEmail}});
 
     if(existingUser){
         return res.status(409).json({message:"Email already registered"});
@@ -18,7 +21,7 @@ const userSignUp = async (req,res)=>{
 
     const newUser=await Users.create({
         userName:userName,
-        email:email,
+        email:normalizedEmail,
         password:hashedPassword
     });
 
@@ -35,7 +38,9 @@ const userLogin= async (req,res)=>{
     try {
         const {email,password}=req.body;
 
-        const user=await Users.findOne({where:{email}});
+        const normalizedEmail=email.toLowerCase();
+
+        const user=await Users.findOne({where:{email:normalizedEmail}});
 
         if(!user){
             return res.status(404).json({message:"User not found"});
