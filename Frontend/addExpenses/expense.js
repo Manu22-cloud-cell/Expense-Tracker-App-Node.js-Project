@@ -1,10 +1,3 @@
-
-//protect expense page
-if (!localStorage.getItem("user")) {
-    alert("Please login first!");
-    window.location.href = "login.html";
-}
-
 const API_URL = "http://localhost:3000/expenses";
 
 let editExpenseId = null; // store id when editing
@@ -22,7 +15,7 @@ function handleFormSubmit(event) {
   if (editExpenseId) {
     // UPDATE (PUT)
     axios
-      .put(`${API_URL}/update/${editExpenseId}`,expenseDetails)
+      .put(`${API_URL}/update/${editExpenseId}`,expenseDetails,{headers:{"Authorization": localStorage.getItem("token")}})
       .then(() => {
         console.log("Expense details has been updated")
         editExpenseId = null;
@@ -33,7 +26,7 @@ function handleFormSubmit(event) {
   } else {
     // CREATE (POST)
     axios
-      .post(`${API_URL}/add`,expenseDetails)
+      .post(`${API_URL}/add`,expenseDetails,{headers:{"Authorization": localStorage.getItem("token")}})
       .then((response) => {
         displayExpenseOnScreen(response.data);
       })
@@ -49,7 +42,7 @@ window.addEventListener("DOMContentLoaded", getAllExpenses);
 
 function getAllExpenses() {
   axios
-    .get(API_URL)
+    .get(API_URL,{headers:{"Authorization":localStorage.getItem("token")}})
     .then((response) => {
       const expenseList = document.getElementById("expenses-list");
       expenseList.innerHTML = ""; // clear existing list
@@ -72,7 +65,7 @@ function displayExpenseOnScreen(expenseDetails) {
   deleteBtn.addEventListener("click", () => {
     // DELETE
     axios
-      .delete(`${API_URL}/delete/${expenseDetails.id}`)
+      .delete(`${API_URL}/delete/${expenseDetails.id}`,{headers:{"Authorization": localStorage.getItem("token")}})
       .then(() => {
         expenseList.removeChild(expenseItem);
         console.log("Expense details deleted successfully");

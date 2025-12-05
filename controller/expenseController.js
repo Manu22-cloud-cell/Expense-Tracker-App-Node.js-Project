@@ -1,13 +1,19 @@
 const Expenses=require('../models/expenses');
+const jwt = require("jsonwebtoken");
+const SECRET_KEY="mySecretKey"
 
 const addExpenses= async (req,res)=>{
     try {
         const {amount,description,category}=req.body;
 
+        const token = req.headers.authorization;
+        const decoded = jwt.verify(token, SECRET_KEY);
+
         const expense=await Expenses.create({
             amount:amount,
             description:description,
-            category:category
+            category:category,
+            userId:decoded.userId //Assign logged-in user's ID
         })
         console.log("Expense details has been added");
         res.status(201).json(expense);
@@ -19,7 +25,12 @@ const addExpenses= async (req,res)=>{
 
 const getAllExpenses= async (req,res)=>{
     try {
-        const expenses= await Expenses.findAll();
+
+    const token = req.headers.authorization;
+    const decoded = jwt.verify(token, SECRET_KEY);
+        const expenses= await Expenses.findAll({
+            where:{userId:decoded.userId}//Filter by logged-in user
+        });
         console.log("Fetching all expesnses");
         res.status(200).json(expenses);
     } catch (error) {
@@ -31,10 +42,18 @@ const updateExpense= async (req,res)=>{
     try {
         const { id }=req.params;
         const { amount,description,category }=req.body;
-        const updatedExpense = await Expenses.findByPk(id);
+
+        const token=req.headers.authorization;
+        const decoded=jwt.verify(token,SECRET_KEY);
+
+        const updatedExpense = await Expenses.findOne({
+            where:{id,userId:decoded.userId} //Ensure ownership
+        });
+
         if(!updatedExpense){
-            res.status(404).send("Expense not found");
+            res.status(404).send("Expense not found or unauthorized");
         }
+
         updatedExpense.amount=amount;
         updatedExpense.description=description;
         updatedExpense.category=category;
@@ -47,15 +66,17 @@ const updateExpense= async (req,res)=>{
 const deleteExpense= async (req,res)=>{
     try {
         const {id}=req.params;
+
+        const token = req.headers.authorization;
+        const decoded = jwt.verify(token, SECRET_KEY);
+
         const deleteExpense=Expenses.destroy({
-            where:{
-                id:id
-            }
+            where:{ id,userId:decoded.userId } //only delete own expense
         })
         if(!deleteExpense){
-            res.status(404).send("Expense not found");
+            res.status(404).send("Expense not found or unauthorized");
         }
-        res.status(200).send(`Expense with id ${id} is deleted`);
+        res.status(200).send("Expense details deleted");
     } catch (error) {
         res.status(500).send({'error':error.message});
     }

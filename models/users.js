@@ -2,7 +2,7 @@ const {Sequelize,DataTypes}=require('sequelize');
 const sequelize=require('../utils/db-connection');
 
 const Users=sequelize.define('users',{
-    userId:{
+    id:{
         type:DataTypes.INTEGER,
         primaryKey:true,
         autoIncrement:true,

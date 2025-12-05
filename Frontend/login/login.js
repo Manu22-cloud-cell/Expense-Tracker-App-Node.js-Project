@@ -10,8 +10,8 @@ function handleLogin(event) {
         .then(res => {
             alert("Login Successful!");
 
-     // Store token or user id if needed
-     localStorage.setItem("user", JSON.stringify(res.data.user));
+     // Store token
+     localStorage.setItem("token",res.data.token);
 
      // Redirect to expense page
      window.location.href = "../addExpenses/expense.html";
