@@ -6,13 +6,18 @@
     <title>Main page|Expense Tracker</title>
     <link rel="stylesheet" href="../style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"></script>
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
    </head>
 <body>
     <nav>
-        <div>
+        <div class="left">
             <a class="navbar-brand" href="#">Expense Tracker</a>
         </div>
+        <div class="right">
+            <button id="premium-btn">Buy Premium</button>
+        </div>
     </nav>
+    <div id="header"></div>
     <form onsubmit="handleFormSubmit(event)" id="expense-form">
         <div>
             <label for="amount">Amount</label>

@@ -9,6 +9,44 @@ body {
   background: #f5f6fa;
   padding: 20px;
 }
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  color: white;
+  background: #4a90e2;
+  border-radius: 8px;
+  margin-bottom: 25px;
+}
+
+.navbar-brand {
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+#premium-btn {
+    background: #ffbf00;
+    color: #222;
+    padding: 10px 18px;
+    border: none;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+#premium-btn:hover {
+    background: #ffc933;
+    transform: scale(1.05);
+}
+
+#premium-btn:active {
+    transform: scale(0.95);
+}
+
 h1 {
     text-align: center;
     margin-bottom: 20px;
@@ -116,19 +154,7 @@ form input,button{
 }
 
 /* Navbar */
-nav {
-  background: #4a90e2;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 25px;
-}
 
-.navbar-brand {
-  color: white;
-  font-size: 24px;
-  font-weight: bold;
-  text-decoration: none;
-}
 
 /* Form Section */
 form {
@@ -212,4 +238,5 @@ button {
   background: #e74c3c;
   color: white;
 }
+
 

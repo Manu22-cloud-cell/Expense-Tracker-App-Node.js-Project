@@ -24,8 +24,8 @@ const addExpenses= async (req,res)=>{
 }
 
 const getAllExpenses= async (req,res)=>{
-    try {
 
+    try {
     const token = req.headers.authorization;
     const decoded = jwt.verify(token, SECRET_KEY);
         const expenses= await Expenses.findAll({

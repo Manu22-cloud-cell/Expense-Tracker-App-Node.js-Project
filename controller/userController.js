@@ -1,7 +1,7 @@
 const Users=require('../models/users');
 const bcrypt=require('bcryptjs');
 const jwt=require('jsonwebtoken');
-const SECRET_KEY="mySecretKey" 
+const SECRET_KEY="mySecretKey" ;
 
 const userSignUp = async (req,res)=>{
 
@@ -58,7 +58,7 @@ const userLogin= async (req,res)=>{
         const token=jwt.sign({userId:user.id,email:user.email},SECRET_KEY,{expiresIn:"1h"});
 
 
-        res.status(200).json({message:"Login Successful",token});
+        res.status(200).json({message:"Login Successful",token,isPremium: user.isPremium || false});
         
     } catch (error) {
         console.log(error);

@@ -6,21 +6,24 @@ function handleLogin(event) {
     const email = document.getElementById("email").value.toLowerCase();
     const password = document.getElementById("password").value;
 
-    axios.post(`${API_URL}/login`, { email, password })
-        .then(res => {
-            alert("Login Successful!");
+    axios
+    .post(`${API_URL}/login`, { email, password })
+    .then(res => {
+        
+        if (!res.data.token) {
+            throw new Error("No token received");
+        }
 
-     // Store token
-     localStorage.setItem("token",res.data.token);
+        alert("Login Successful!");
 
-     // Redirect to expense page
-     window.location.href = "../addExpenses/expense.html";
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("isPremium", res.data.isPremium ? "true" : "false");
 
-        })
-        .catch(err => {
-            alert(err.response?.data?.message || "Login failed");
-        });
-
-    event.target.reset();
+        window.location.href = "../addExpenses/expense.html";
+    })
+    .catch(err => {
+        console.log(err);
+        alert(err.response?.data?.message || "Login failed");
+    });
 }
 
