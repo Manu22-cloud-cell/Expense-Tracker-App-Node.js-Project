@@ -55,10 +55,10 @@ const userLogin= async (req,res)=>{
         }
 
         //Generate token
-        const token=jwt.sign({userId:user.id,email:user.email},SECRET_KEY,{expiresIn:"1h"});
+        const token=jwt.sign({userId:user.id,email:user.email},SECRET_KEY);
 
 
-        res.status(200).json({message:"Login Successful",token,isPremium: user.isPremium || false});
+        res.status(200).json({message:"Login Successful",token,username:user.userName,isPremium: user.isPremium || false});
         
     } catch (error) {
         console.log(error);

@@ -59,22 +59,24 @@ exports.verifyPayment = async (req, res) => {
     const response = await cashfree.PGFetchOrder(orderId);
     const status = response.data.order_status;
 
-    console.log("Payment Status:", status);
-
     const payment = await Payment.findOne({ where: { orderId } });
-
     if (!payment) return res.status(404).json({ error: "Order not found" });
 
-    // Update status in DB
     await payment.update({ paymentStatus: status });
 
-    // If success → make user premium
+    let token = null;
+
     if (status === "PAID") {
       const user = await User.findByPk(payment.userId);
       await user.update({ isPremium: true });
+
+      // 🔥 Generate NEW TOKEN containing updated premium state
+      token = jwt.sign(
+        { userId: user.id, name: user.name, isPremium: true },SECRET_KEY,{ expiresIn: "1h" }
+      );
     }
 
-    res.json({ message: "Payment updated", status });
+    res.json({ message: "Payment updated", status, token });
 
   } catch (err) {
     console.error("Verification Error:", err.message);

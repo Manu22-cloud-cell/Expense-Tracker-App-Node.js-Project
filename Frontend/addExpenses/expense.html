@@ -11,47 +11,59 @@
 <body>
     <nav>
         <div class="left">
-            <a class="navbar-brand" href="#">Expense Tracker</a>
+            <a class="navbar-brand" href="#">Expense Tracker App</a>
         </div>
+        <div id="welcomeBox"></div>
         <div class="right">
             <button id="premium-btn">Buy Premium</button>
         </div>
     </nav>
-    <div id="header"></div>
-    <form onsubmit="handleFormSubmit(event)" id="expense-form">
-        <div>
-            <label for="amount">Amount</label>
-            <input type="number" min="0" step="0.01" id="amount" placeholder="Enter Amount"  name="amount" required>
-        </div>
+    
+    <div class="premium-header">
+         <div id="header"></div>
+    </div>
+    <div class="page-layout">
+        <div class="left-section">
+            <form onsubmit="handleFormSubmit(event)" id="expense-form">
+                <div>
+                    <label for="amount">Amount</label>
+                    <input type="number" min="0" step="0.01" id="amount" placeholder="Enter Amount"  name="amount" required>
+                </div>
         
-        <div>
-           <label for="description">Description</label>
-           <input type="text" id="description" placeholder="eg.Groceries, Rent" name="description" required>
-        </div>
+                <div>
+                    <label for="description">Description</label>
+                    <input type="text" id="description" placeholder="eg.Groceries, Rent" name="description" required>
+                </div>
         
-        <div>
-        <label for="category">Category</label>
-        <select id="category" name="category" required>
-            <option value="">-- Choose category --</option>
-            <option>Food</option>
-            <option>Transport</option>
-            <option>Rent</option>
-            <option>Utilities</option>
-            <option>Entertainment</option>
-            <option>other</option>
-        </select>
-        </div>
+                <div>
+                    <label for="category">Category</label>
+                    <select id="category" name="category" required>
+                    <option value="">-- Choose category --</option>
+                    <option>Food</option>
+                    <option>Transport</option>
+                    <option>Rent</option>
+                    <option>Utilities</option>
+                    <option>Entertainment</option>
+                    <option>other</option>
+                    </select>
+                </div>
 
-        <div>
-            <button type="submit" id="add-btn">Add Expense</button>
+               <div>
+                   <button type="submit" id="add-btn">Add Expense</button>
+               </div>
+            </form>
+        <h5>
+          Your Expenses
+        </h5>
+        <ul id="expenses-list">
+        <!-- Items injected here -->
+        </ul>
         </div>
-    </form>
-<h5>
-Your Expenses
-</h5>
-<ul id="expenses-list">
-<!-- Items injected here -->
-</ul>
+    <div class="right-section">
+    <div id="leaderboard-container" class="leaderboard hidden"></div>
+    </div>
+        
+    </div>
 <script src="expense.js"></script>
 </body>
 </html>

@@ -16,6 +16,7 @@ function handleLogin(event) {
 
         alert("Login Successful!");
 
+        localStorage.setItem("username",res.data.username);
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("isPremium", res.data.isPremium ? "true" : "false");
 

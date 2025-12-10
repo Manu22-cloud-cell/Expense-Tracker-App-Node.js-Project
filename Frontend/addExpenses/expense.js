@@ -1,11 +1,34 @@
-if (!localStorage.getItem("token")) {
-  alert("Session expired. Please log in again.");
-  window.location.href = "../login/login.html";
-}
-
 const API_URL = "http://localhost:3000/expenses";
 
 let editExpenseId = null; // store id when editing
+
+// -------- MAIN ON PAGE LOAD --------
+document.addEventListener("DOMContentLoaded", () => {
+
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    alert("Session expired. Please log in again.");
+    window.location.href = "../login/login.html";
+    return;
+  }
+
+  // Show Welcome username
+  const username = localStorage.getItem("username");
+  const welcomeDiv = document.getElementById("welcomeBox");
+  if (username && welcomeDiv) {
+    welcomeDiv.textContent = `Welcome ${username}!!`;
+  }
+
+  // Check premium user status and update UI
+  checkPremiumStatus();
+
+  // Load existing expenses
+  getAllExpenses();
+});
+
+
+// -------- CRUD FUNCTIONS --------
 
 // CREATE or UPDATE expense
 function handleFormSubmit(event) {
@@ -17,136 +40,164 @@ function handleFormSubmit(event) {
     category: event.target.category.value,
   };
 
+  const token = localStorage.getItem("token");
+
   if (editExpenseId) {
-    // UPDATE (PUT)
     axios
-      .put(`${API_URL}/update/${editExpenseId}`,expenseDetails,{headers:{"Authorization": localStorage.getItem("token")}})
+      .put(`${API_URL}/update/${editExpenseId}`, expenseDetails, {
+        headers: { Authorization: token },
+      })
       .then(() => {
-        console.log("Expense details has been updated")
         editExpenseId = null;
-        document.getElementById("add-btn").textContent = "Submit";
-        getAllExpenses(); // refresh list
+        document.getElementById("add-btn").textContent = "Add Expense";
+        getAllExpenses();
       })
       .catch((err) => console.log(err));
   } else {
-    // CREATE (POST)
     axios
-      .post(`${API_URL}/add`,expenseDetails,{headers:{"Authorization": localStorage.getItem("token")}})
-      .then((response) => {
-        displayExpenseOnScreen(response.data);
+      .post(`${API_URL}/add`, expenseDetails, {
+        headers: { Authorization: token },
       })
-      .catch((error) => console.log(error));
+      .then(() => getAllExpenses())
+      .catch((err) => console.log(err));
   }
 
-  // Clear form inputs
   event.target.reset();
 }
 
-// READ (GET) — fetch all expenses on page load
-window.addEventListener("DOMContentLoaded", getAllExpenses);
-
+// READ (fetch all expenses)
 function getAllExpenses() {
   axios
-    .get(API_URL,{headers:{"Authorization": localStorage.getItem("token")}})
+    .get(API_URL, { headers: { Authorization: localStorage.getItem("token") } })
     .then((response) => {
       const expenseList = document.getElementById("expenses-list");
-      expenseList.innerHTML = ""; // clear existing list
+      expenseList.innerHTML = "";
       response.data.forEach((expense) => displayExpenseOnScreen(expense));
     })
-    .catch((error) => console.log(error));
+    .catch((err) => console.log(err));
 }
 
-// DISPLAY expenses on screen
-function displayExpenseOnScreen(expenseDetails) {
+
+// DISPLAY expenses
+function displayExpenseOnScreen(expense) {
   const expenseList = document.getElementById("expenses-list");
 
-  const expenseItem = document.createElement("li");
-  expenseItem.textContent = `Rs.${expenseDetails.amount} - ${expenseDetails.description} - ${expenseDetails.category} `;
+  const li = document.createElement("li");
+  li.textContent = `Rs.${expense.amount} - ${expense.description} - ${expense.category} `;
 
-  // Delete button 
+  // Edit Button
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "Edit";
+  editBtn.addEventListener("click", () => {
+    document.getElementById("amount").value = expense.amount;
+    document.getElementById("description").value = expense.description;
+    document.getElementById("category").value = expense.category;
+    document.getElementById("add-btn").textContent = "Update";
+    editExpenseId = expense.id;
+  });
+
+  // Delete Button
   const deleteBtn = document.createElement("button");
   deleteBtn.textContent = "Delete";
-
   deleteBtn.addEventListener("click", () => {
-    // DELETE
     axios
-      .delete(`${API_URL}/delete/${expenseDetails.id}`,{headers:{"Authorization": localStorage.getItem("token")}})
+      .delete(`${API_URL}/delete/${expense.id}`, {
+        headers: { Authorization: localStorage.getItem("token") },
+      })
       .then(() => {
-        expenseList.removeChild(expenseItem);
-        console.log("Expense details deleted successfully");
+        expenseList.removeChild(li);
       })
       .catch((err) => console.log(err));
   });
 
-  // Edit button
-  const editBtn = document.createElement("button");
-  editBtn.textContent = "Edit";
-
-  editBtn.addEventListener("click", () => {
-    // Fill form with current details
-    document.getElementById("amount").value = expenseDetails.amount;
-    document.getElementById("description").value = expenseDetails.description;
-    document.getElementById("category").value = expenseDetails.category;
-    document.getElementById("add-btn").textContent = "Update";
-
-    // Save the id for PUT request
-    editExpenseId = expenseDetails.id;
-  });
-
-  expenseItem.appendChild(editBtn);
-  expenseItem.appendChild(deleteBtn);
-  expenseList.appendChild(expenseItem);
+  li.appendChild(editBtn);
+  li.appendChild(deleteBtn);
+  expenseList.appendChild(li);
 }
 
-//updating the user as Premium user
+
+// -------- PREMIUM FEATURES --------
+
+// Trigger Payment
 document.getElementById("premium-btn").addEventListener("click", () => {
   axios
-  .post(
-  "http://localhost:3000/payment/create-order",
-  { phone: "9999999999" },
-  {headers:{"Authorization": localStorage.getItem("token")}}
-  )
-  .then((response)=>{
-
-    const { sessionId } = response.data;
-    const cashfree = Cashfree({ mode: "sandbox" });
-    cashfree.checkout({ paymentSessionId:sessionId });
-
-  })
-  .catch((error)=>{
-
-    console.error("Payment error:", error.response?.data || error.message);
-    alert("Something went wrong while initiating payment");
-
-  })
+    .post(
+      "http://localhost:3000/payment/create-order",
+      { phone: "9999999999" },
+      { headers: { Authorization: localStorage.getItem("token") } }
+    )
+    .then((response) => {
+      const { sessionId } = response.data;
+      const cashfree = Cashfree({ mode: "sandbox" });
+      cashfree.checkout({ paymentSessionId: sessionId });
+    })
+    .catch((error) => {
+      alert("Payment could not start. Try again.");
+      console.error(error);
+    });
 });
 
-window.addEventListener("DOMContentLoaded", () => {
-  checkPremiumStatus();
-});
-
+// Check premium and update UI
 function checkPremiumStatus() {
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
   const isPremium = localStorage.getItem("isPremium");
-  const premiumBtn = document.getElementById("premium-btn");
-
   if (isPremium === "true") {
-    premiumBtn.style.display = "none";
     showPremiumBadge();
+    document.getElementById("premium-btn").style.display = "none";
   }
 }
 
 function showPremiumBadge() {
   const header = document.getElementById("header");
-  header.innerHTML = ""; // avoid duplicate badge
 
+  // Premium Badge
   const badge = document.createElement("span");
-  badge.textContent = "🌟 PREMIUM USER";
-  badge.style.color = "gold";
-  badge.style.fontSize = "20px";
-  badge.style.fontWeight = "bold";
+  badge.textContent = "Premium Member";
+  badge.classList.add("premium-badge");
+
+  // Leaderboard Button
+  const leaderBoardBtn = document.createElement("button");
+  leaderBoardBtn.textContent = "Show Leaderboard";
+  leaderBoardBtn.classList.add("leaderboard-btn");
+  leaderBoardBtn.addEventListener("click", getLeaderboard);
 
   header.appendChild(badge);
+  header.appendChild(leaderBoardBtn);
 }
+
+
+// -------- LEADERBOARD --------
+function getLeaderboard() {
+  axios
+    .get("http://localhost:3000/expenses/leaderboard", {
+      headers: { Authorization: localStorage.getItem("token") },
+    })
+    .then((response) => {
+      const leaderboard = response.data;
+      const container = document.getElementById("leaderboard-container");
+      container.classList.remove("hidden");
+
+      container.innerHTML = `
+        <h3>Leaderboard</h3>
+        <table border="1" style="border-collapse: collapse; width: 50%; margin-top: 10px;">
+          <tr style="background: #eee;">
+            <th>Name</th>
+            <th>Total Expense</th>
+          </tr>
+          ${leaderboard
+            .map(
+              (user) => `
+            <tr>
+              <td>${user.userName || "Unknown"}</td>
+              <td>₹${user.totalExpense || 0}</td>
+            </tr>`
+            )
+            .join("")}
+        </table>
+      `;
+    })
+    .catch((err) => {
+      alert("Unable to load leaderboard");
+      console.log(err);
+    });
+}
+
