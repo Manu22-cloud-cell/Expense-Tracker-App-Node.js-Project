@@ -72,7 +72,7 @@ exports.verifyPayment = async (req, res) => {
 
       // 🔥 Generate NEW TOKEN containing updated premium state
       token = jwt.sign(
-        { userId: user.id, name: user.name, isPremium: true },SECRET_KEY,{ expiresIn: "1h" }
+        { userId: user.id, name: user.userName, isPremium: true },SECRET_KEY,{ expiresIn: "1h" }
       );
     }
 
