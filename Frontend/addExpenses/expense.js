@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Show Welcome username
-  const username = localStorage.getItem("name");
+  const username = localStorage.getItem("username");
   const welcomeDiv = document.getElementById("welcomeBox");
   if (username && welcomeDiv) {
     welcomeDiv.textContent = `Welcome ${username}!!`;

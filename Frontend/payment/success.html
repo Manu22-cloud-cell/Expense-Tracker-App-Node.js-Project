@@ -25,6 +25,7 @@ axios.get(`http://localhost:3000/payment/verify/${orderId}`)
   }
 
   localStorage.setItem("isPremium", "true");
+  localStorage.setItem("username",res.data.username);
 
   setTimeout(() => {
     window.location.href = "../addExpenses/expense.html";

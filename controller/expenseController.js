@@ -1,4 +1,5 @@
 const Expenses=require('../models/expenses');
+const User=require('../models/users');
 const jwt = require("jsonwebtoken");
 const SECRET_KEY="mySecretKey"
 
@@ -15,6 +16,13 @@ const addExpenses= async (req,res)=>{
             category:category,
             userId:decoded.userId //Assign logged-in user's ID
         })
+
+        //Update totalExpense incrementally
+        await User.increment(
+            {totalExpense:amount},
+            {where:{id:decoded.userId}}
+        )
+
         console.log("Expense details has been added");
         res.status(201).json(expense);
     } catch (error) {
@@ -46,21 +54,34 @@ const updateExpense= async (req,res)=>{
         const token=req.headers.authorization;
         const decoded=jwt.verify(token,SECRET_KEY);
 
-        const updatedExpense = await Expenses.findOne({
-            where:{id,userId:decoded.userId} //Ensure ownership
+        //Fetch old expense
+        const existingExpense=await Expenses.findOne({
+            where:{id,userId:decoded.userId}
         });
 
-        if(!updatedExpense){
-            res.status(404).send("Expense not found or unauthorized");
+        if(!existingExpense){
+            return res.status(404).send("Expense not found or unauthorized");
         }
 
-        updatedExpense.amount=amount;
-        updatedExpense.description=description;
-        updatedExpense.category=category;
-        await updatedExpense.save();
-        res.status(200).json(updatedExpense)
+        const oldAmount=existingExpense.amount;
+        const newAmount=Number(amount);
+
+        //calculate the differenc
+        const diff=newAmount-oldAmount;
+
+        existingExpense.amount=amount;
+        existingExpense.description=description;
+        existingExpense.category=category;
+        await existingExpense.save();
+
+        await User.increment(
+            {totalExpense:diff},
+            {where:{id:decoded.userId}}
+        );
+
+        res.status(200).json(existingExpense)
     } catch (error) {
-        res.status(500).send({"error":error.message});     
+        res.status(500).send({error:error.message});     
     }
 }
 const deleteExpense= async (req,res)=>{
@@ -70,15 +91,29 @@ const deleteExpense= async (req,res)=>{
         const token = req.headers.authorization;
         const decoded = jwt.verify(token, SECRET_KEY);
 
-        const deleteExpense=Expenses.destroy({
-            where:{ id,userId:decoded.userId } //only delete own expense
-        })
-        if(!deleteExpense){
-            res.status(404).send("Expense not found or unauthorized");
+        //Find the expense first
+        const expense=await Expenses.findOne({
+            where:{id,userId:decoded.userId}
+        });
+
+        if(!expense){
+            return res.status(404).send("Expense not found or unauthorized");
         }
-        res.status(200).send("Expense details deleted");
+
+        const amountToSubtract = expense.amount;
+
+        //delete the expense
+        await expense.destroy();
+
+        //subtract from the totalExpense
+        await User.increment(
+            {totalExpense:-amountToSubtract},
+            {where:{id:decoded.userId}}
+        );
+
+        res.status(200).send("Expense deleted successfully");
     } catch (error) {
-        res.status(500).send({'error':error.message});
+        res.status(500).send({error:error.message});
     }
 }
 

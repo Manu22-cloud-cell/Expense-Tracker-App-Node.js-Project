@@ -72,12 +72,10 @@ exports.verifyPayment = async (req, res) => {
 
       // 🔥 Generate NEW TOKEN containing updated premium state
       token = jwt.sign(
-        { userId: user.id, name: user.userName, isPremium: true },SECRET_KEY,{ expiresIn: "1h" }
+        { userId: user.id, username: user.userName, isPremium: true },SECRET_KEY,{ expiresIn: "1h" }
       );
+      res.json({ message: "Payment updated", status, token,username:user.userName});
     }
-
-    res.json({ message: "Payment updated", status, token });
-
   } catch (err) {
     console.error("Verification Error:", err.message);
     res.status(500).json({ error: err.message });
