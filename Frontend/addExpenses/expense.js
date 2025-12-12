@@ -25,8 +25,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load existing expenses
   getAllExpenses();
-});
 
+});
 
 // -------- CRUD FUNCTIONS --------
 
@@ -184,14 +184,14 @@ function getLeaderboard() {
             <th>Total Expense</th>
           </tr>
           ${leaderboard
-            .map(
-              (user) => `
+          .map(
+            (user) => `
             <tr>
               <td>${user.userName || "Unknown"}</td>
               <td>₹${user.totalExpense || 0}</td>
             </tr>`
-            )
-            .join("")}
+          )
+          .join("")}
         </table>
       `;
     })

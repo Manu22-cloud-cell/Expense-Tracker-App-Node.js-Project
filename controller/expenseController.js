@@ -1,14 +1,25 @@
 const Expenses=require('../models/expenses');
 const User=require('../models/users');
 const jwt = require("jsonwebtoken");
-const SECRET_KEY="mySecretKey"
+const SECRET_KEY="mySecretKey";
+const { autoCategorize } = require("../services/aiCategoryService");
 
+// ADD EXPENSE WITH AI AUTO-CATEGORY
 const addExpenses= async (req,res)=>{
     try {
-        const {amount,description,category}=req.body;
+        let {amount,description,category}=req.body;
 
         const token = req.headers.authorization;
         const decoded = jwt.verify(token, SECRET_KEY);
+
+        console.log(description);
+
+        //If user did not pick a category → Let AI decide
+        if(!category || category.trim()===""){
+            category = await autoCategorize(description)
+        }
+
+        console.log(category);
 
         const expense=await Expenses.create({
             amount:amount,
@@ -23,7 +34,7 @@ const addExpenses= async (req,res)=>{
             {where:{id:decoded.userId}}
         )
 
-        console.log("Expense details has been added");
+        console.log("Expense added with AI category");
         res.status(201).json(expense);
     } catch (error) {
         console.log(error)

@@ -6,6 +6,7 @@ const paymentRoutes=require('./routes/paymentRoutes');
 const leaderboardRouter=require('./routes/userLeaderBoard')
 const path=require("path");
 const cors=require('cors');
+require("dotenv").config();
 
 const app=express();
 
