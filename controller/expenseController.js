@@ -1,136 +1,142 @@
-const Expenses=require('../models/expenses');
-const User=require('../models/users');
+const Expenses = require('../models/expenses');
+const User = require('../models/users');
 const jwt = require("jsonwebtoken");
-const SECRET_KEY="mySecretKey";
+const SECRET_KEY = "mySecretKey";
 const { autoCategorize } = require("../services/aiCategoryService");
+const sequelize = require('../utils/db-connection');
 
-// ADD EXPENSE WITH AI AUTO-CATEGORY
-const addExpenses= async (req,res)=>{
+
+// ADD EXPENSE
+const addExpenses = async (req, res) => {
     try {
-        let {amount,description,category}=req.body;
 
+        const { amount, description, category } = req.body;
+        const decoded = jwt.verify(req.headers.authorization, SECRET_KEY);
+
+        const result = await sequelize.transaction(async (t) => {
+
+            let finalCategory = category;
+            if (!finalCategory || finalCategory.trim() === "") {
+                finalCategory = await autoCategorize(description);
+            }
+
+            const expense = await Expenses.create(
+                {
+                    amount,
+                    description,
+                    category: finalCategory,
+                    userId: decoded.userId
+                },
+                { transaction: t }
+            );
+
+            await User.increment(
+                { totalExpense: amount },
+                { where: { id: decoded.userId }, transaction: t }
+            );
+
+            return expense; // returned from transaction
+        });
+
+        res.status(201).json(result);
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// GET ALL
+const getAllExpenses = async (req, res) => {
+    try {
         const token = req.headers.authorization;
         const decoded = jwt.verify(token, SECRET_KEY);
 
-        console.log(description);
-
-        //If user did not pick a category → Let AI decide
-        if(!category || category.trim()===""){
-            category = await autoCategorize(description)
-        }
-
-        console.log(category);
-
-        const expense=await Expenses.create({
-            amount:amount,
-            description:description,
-            category:category,
-            userId:decoded.userId //Assign logged-in user's ID
-        })
-
-        //Update totalExpense incrementally
-        await User.increment(
-            {totalExpense:amount},
-            {where:{id:decoded.userId}}
-        )
-
-        console.log("Expense added with AI category");
-        res.status(201).json(expense);
-    } catch (error) {
-        console.log(error)
-        res.status(500).send({'error':error.message});
-    }
-}
-
-const getAllExpenses= async (req,res)=>{
-
-    try {
-    const token = req.headers.authorization;
-    const decoded = jwt.verify(token, SECRET_KEY);
-        const expenses= await Expenses.findAll({
-            where:{userId:decoded.userId}//Filter by logged-in user
+        const expenses = await Expenses.findAll({
+            where: { userId: decoded.userId }
         });
-        console.log("Fetching all expesnses");
+
         res.status(200).json(expenses);
     } catch (error) {
-        res.status(500).send({'error':error.message});   
+        res.status(500).send({ error: error.message });
     }
-}
+};
 
-const updateExpense= async (req,res)=>{
+
+
+// UPDATE EXPENSE
+const updateExpense = async (req, res) => {
     try {
-        const { id }=req.params;
-        const { amount,description,category }=req.body;
+        const { id } = req.params;
+        const { amount, description, category } = req.body;
+        const decoded = jwt.verify(req.headers.authorization, SECRET_KEY);
 
-        const token=req.headers.authorization;
-        const decoded=jwt.verify(token,SECRET_KEY);
+        const updatedExpense = await sequelize.transaction(async (t) => {
 
-        //Fetch old expense
-        const existingExpense=await Expenses.findOne({
-            where:{id,userId:decoded.userId}
+            const existingExpense = await Expenses.findOne({
+                where: { id, userId: decoded.userId },
+                transaction: t
+            });
+
+            if (!existingExpense) {
+                throw new Error("Expense not found or unauthorized");
+            }
+
+            const diff = Number(amount) - existingExpense.amount;
+
+            await existingExpense.update(
+                { amount, description, category },
+                { transaction: t }
+            );
+
+            await User.increment(
+                { totalExpense: diff },
+                { where: { id: decoded.userId }, transaction: t }
+            );
+
+            return existingExpense;
         });
 
-        if(!existingExpense){
-            return res.status(404).send("Expense not found or unauthorized");
-        }
+        res.status(200).json(updatedExpense);
 
-        const oldAmount=existingExpense.amount;
-        const newAmount=Number(amount);
-
-        //calculate the differenc
-        const diff=newAmount-oldAmount;
-
-        existingExpense.amount=amount;
-        existingExpense.description=description;
-        existingExpense.category=category;
-        await existingExpense.save();
-
-        await User.increment(
-            {totalExpense:diff},
-            {where:{id:decoded.userId}}
-        );
-
-        res.status(200).json(existingExpense)
     } catch (error) {
-        res.status(500).send({error:error.message});     
+        res.status(500).json({ error: error.message });
     }
-}
-const deleteExpense= async (req,res)=>{
+};
+
+// DELETE EXPENSE
+const deleteExpense = async (req, res) => {
     try {
-        const {id}=req.params;
+        const { id } = req.params;
+        const decoded = jwt.verify(req.headers.authorization, SECRET_KEY);
 
-        const token = req.headers.authorization;
-        const decoded = jwt.verify(token, SECRET_KEY);
+        await sequelize.transaction(async (t) => {
+            const expense = await Expenses.findOne({
+                where: { id, userId: decoded.userId },
+                transaction: t
+            });
 
-        //Find the expense first
-        const expense=await Expenses.findOne({
-            where:{id,userId:decoded.userId}
+            if (!expense) {
+                throw new Error("Expense not found or unauthorized");
+            }
+
+            await User.increment(
+                { totalExpense: -expense.amount },
+                { where: { id: decoded.userId }, transaction: t }
+            );
+
+            await expense.destroy({ transaction: t });
         });
-
-        if(!expense){
-            return res.status(404).send("Expense not found or unauthorized");
-        }
-
-        const amountToSubtract = expense.amount;
-
-        //delete the expense
-        await expense.destroy();
-
-        //subtract from the totalExpense
-        await User.increment(
-            {totalExpense:-amountToSubtract},
-            {where:{id:decoded.userId}}
-        );
 
         res.status(200).send("Expense deleted successfully");
-    } catch (error) {
-        res.status(500).send({error:error.message});
-    }
-}
 
-module.exports={
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports = {
     addExpenses,
     getAllExpenses,
     updateExpense,
     deleteExpense
-}
+};
