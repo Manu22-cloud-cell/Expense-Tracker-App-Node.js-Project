@@ -1,9 +1,9 @@
 const { Cashfree, CFEnvironment } = require("cashfree-pg");
-const { createOrder }=require("../services/cashfreeService");
-const  Payment =require('../models/payment');
-const User=require('../models/users');
-const jwt=require("jsonwebtoken");
-const SECRET_KEY="mySecretKey";
+const { createOrder } = require("../services/cashfreeService");
+const Payment = require('../models/payment');
+const User = require('../models/users');
+const jwt = require("jsonwebtoken");
+const SECRET_KEY = "mySecretKey";
 
 const cashfree = new Cashfree(
   CFEnvironment.SANDBOX,
@@ -14,12 +14,12 @@ const cashfree = new Cashfree(
 exports.initiatePayment = async (req, res) => {
   try {
     const token = req.headers.authorization;
-    const decoded = jwt.verify(token,SECRET_KEY);
+    const decoded = jwt.verify(token, SECRET_KEY);
 
     const { phone, email } = req.body;
 
     const orderId = "ORDER_" + Date.now();
-    const amount=199;
+    const amount = 199;
 
     const sessionId = await createOrder(
       orderId,
@@ -31,9 +31,9 @@ exports.initiatePayment = async (req, res) => {
 
     await Payment.create({
       orderId,
-      userId:decoded.userId,
+      userId: decoded.userId,
       amount,
-      paymentStatus:"PENDING"
+      paymentStatus: "PENDING"
     });
 
     res.json({ orderId, sessionId });
@@ -44,9 +44,9 @@ exports.initiatePayment = async (req, res) => {
   }
 };
 
-exports.paymentStatus=async (req,res)=>{
+exports.paymentStatus = async (req, res) => {
   const { orderId } = req.params;
-  
+
   const response = await cashfree.PGFetchOrder(orderId);
   console.log("Payment Status:", response.data);
   res.json(response.data);
@@ -72,9 +72,9 @@ exports.verifyPayment = async (req, res) => {
 
       // 🔥 Generate NEW TOKEN containing updated premium state
       token = jwt.sign(
-        { userId: user.id, username: user.userName, isPremium: true },SECRET_KEY,{ expiresIn: "1h" }
+        { userId: user.id, username: user.userName, isPremium: true }, SECRET_KEY, { expiresIn: "1h" }
       );
-      res.json({ message: "Payment updated", status, token,username:user.userName});
+      res.json({ message: "Payment updated", status, token, username: user.userName });
     }
   } catch (err) {
     console.error("Verification Error:", err.message);

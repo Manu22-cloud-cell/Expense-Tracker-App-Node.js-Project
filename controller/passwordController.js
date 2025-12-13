@@ -1,50 +1,106 @@
-const Users = require("../models/users");
-const Sib = require("sib-api-v3-sdk");
+const tranEmailApi = require("../utils/email");
+const bcrypt = require("bcryptjs");
+const ForgotPasswordRequests = require("../models/forgotPasswordReq");
+const User = require("../models/users");
 
 const forgotPassword = async (req, res) => {
-    try {
-        const { email } = req.body;
+  try {
+    const { email } = req.body;
 
-        const user = await Users.findOne({ where: { email } });
-
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Send email using Brevo(Ex Sendinblue)
-        const client = Sib.ApiClient.instance;
-        const apiKey = client.authentications["api-key"];
-        apiKey.apiKey = process.env.SENDINBLUE_API_KEY;
-
-        const tranEmailApi = new Sib.TransactionalEmailsApi();
-
-        const sender = {
-            email: "manojkymanu6@gmail.com",
-            name: "Expense Tracker App"
-        }
-
-        const receivers = [
-            { email: email }
-        ];
-
-        await tranEmailApi.sendTransacEmail({
-            sender,
-            to: receivers,
-            subject: "Password Reset Request",
-            htmlContent: `
-                <h3>Password Reset</h3>
-                <p>This is a dummy email for forgot password feature.</p>
-                <p>You can later add reset link here.</p>
-            `
-        });
-
-        res.status(200).json({ message: "Password reset email sent successfully" });
-
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Failed to send email" });
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    const request = await ForgotPasswordRequests.create({
+      userId: user.id
+    });
+
+    const resetLink = `http://localhost:3000/password/resetpassword/${request.id}`;
+
+    await tranEmailApi.sendTransacEmail({
+      sender: {
+        email: "manojkymanu6@gmail.com", // MUST be verified
+        name: "Expense Tracker"
+      },
+      to: [{ email }],
+      subject: "Reset your password",
+      htmlContent: `
+        <h3>Password Reset</h3>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetLink}">${resetLink}</a>
+      `
+    });
+
+    res.status(200).json({ message: "Reset email sent successfully" });
+
+  } catch (err) {
+    console.error("Sendinblue Error:", err);
+    res.status(500).json({ message: "Failed to send reset email" });
+  }
 }
 
-module.exports = { forgotPassword };
+const resetPasswordPage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const request = await ForgotPasswordRequests.findOne({
+      where: { id, isActive: true }
+    })
+
+    if (!request) {
+      return res.status(400).send("Link expired or invalid");
+    }
+
+    res.send(`
+      <form action="/password/updatepassword/${id}" method="POST">
+        <input type="password" name="password" placeholder="New Password" required />
+        <button type="submit">Update Password</button>
+      </form>
+    `);
+
+  } catch (error) {
+    res.status(500).send("Error loading reset page");
+  }
+}
+
+const updatePassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    console.log("BODY:", req.body);
+
+    const request = await ForgotPasswordRequests.findOne({
+      where: { id, isActive: true }
+    });
+
+    if (!request) {
+      return res.status(400).send("Invalid or expired link");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await User.update(
+      { password: hashedPassword },
+      { where: { id: request.userId } }
+    );
+
+    await ForgotPasswordRequests.update(
+      { isActive: false },
+      { where: { id } }
+    );
+
+    res.send("<h3>Password updated successfully. You can login now.</h3>");
+  } catch (error) {
+    res.status(500).send("Failed to reset password");
+  }
+}
+
+
+
+module.exports = {
+  forgotPassword,
+  resetPasswordPage,
+  updatePassword
+};

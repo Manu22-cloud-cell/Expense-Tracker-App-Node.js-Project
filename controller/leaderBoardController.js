@@ -1,11 +1,11 @@
-const User=require('../models/users');
+const User = require('../models/users');
 const sequelize = require("../utils/db-connection");
 
 exports.getLeaderboard = async (req, res) => {
   try {
-    const leaderboard=await User.findAll({
-      attributes:["userName","totalExpense"],
-      order:[["totalExpense","DESC"]]
+    const leaderboard = await User.findAll({
+      attributes: ["userName", "totalExpense"],
+      order: [["totalExpense", "DESC"]]
     });
 
     res.status(200).json(leaderboard);

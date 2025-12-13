@@ -7,43 +7,39 @@ function handleLogin(event) {
     const password = document.getElementById("password").value;
 
     axios
-    .post(`${API_URL}/login`, { email, password })
-    .then(res => {
-        
-        if (!res.data.token) {
-            throw new Error("No token received");
-        }
+        .post(`${API_URL}/login`, { email, password })
+        .then(res => {
 
-        alert("Login Successful!");
+            if (!res.data.token) {
+                throw new Error("No token received");
+            }
 
-        localStorage.setItem("username",res.data.username);
-        localStorage.setItem("token", res.data.token);
-        localStorage.setItem("isPremium", res.data.isPremium ? "true" : "false");
+            alert("Login Successful!");
 
-        window.location.href = "../addExpenses/expense.html";
-    })
-    .catch(err => {
-        console.log(err);
-        alert(err.response?.data?.message || "Login failed");
-    });
+            localStorage.setItem("username", res.data.username);
+            localStorage.setItem("token", res.data.token);
+            localStorage.setItem("isPremium", res.data.isPremium ? "true" : "false");
+
+            window.location.href = "../addExpenses/expense.html";
+        })
+        .catch(err => {
+            console.log(err);
+            alert(err.response?.data?.message || "Login failed");
+        });
 }
 
 function showForgotPasswordForm() {
-    document.getElementById("login-form").style.display="none";
-    document.getElementById("forgot-form").style.display="block";
+    document.getElementById("forgot-form").style.display = "block";
 }
 
-function handleForgotPassword(event) {
-    event.preventDefault();
+function handleForgotPassword(e) {
+    e.preventDefault();
 
-    const email=document.getElementById("forgot-email").value.toLowerCase();
+    const email = document.getElementById("forgot-email").value;
 
-    axios.post("http://localhost:3000/password/forgotpassword", {email})
-        .then(res=>{
-            alert(res.data.message);
-        })
-        .catch(err=>{
-            alert(err.response?.data?.message || "Something went wrong");
-        });
+    axios.post("http://localhost:3000/password/forgotpassword", { email })
+        .then(() => alert("Reset link sent to your email"))
+        .catch(() => alert("Error sending reset email"));
 }
+
 
