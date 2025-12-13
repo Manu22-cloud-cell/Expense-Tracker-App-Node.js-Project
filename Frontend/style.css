@@ -330,4 +330,41 @@ button {
   font-weight: bold;
 }
 
+.forgot-password {
+    text-align: right;
+    margin-top: -5px;
+    font-size: 13px;
+}
+
+.forgot-password a {
+    color: #007bff;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+}
+
+/* Forgot password form */
+#forgot-form {
+    max-width: 350px;
+    margin: 15px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+#password-reset-btn {
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+    border: none;
+    transition: 0.3s;
+}
+#password-reset-btn:hover {
+    background: #0056b3;
+    transform: scale(1.05);
+}
+
 

@@ -28,3 +28,22 @@ function handleLogin(event) {
     });
 }
 
+function showForgotPasswordForm() {
+    document.getElementById("login-form").style.display="none";
+    document.getElementById("forgot-form").style.display="block";
+}
+
+function handleForgotPassword(event) {
+    event.preventDefault();
+
+    const email=document.getElementById("forgot-email").value.toLowerCase();
+
+    axios.post("http://localhost:3000/password/forgotpassword", {email})
+        .then(res=>{
+            alert(res.data.message);
+        })
+        .catch(err=>{
+            alert(err.response?.data?.message || "Something went wrong");
+        });
+}
+
