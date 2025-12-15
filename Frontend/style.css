@@ -417,3 +417,18 @@ button {
 .reports-btn:active {
   transform: scale(0.95);
 }
+
+#pagination button {
+  padding: 6px 12px;
+  margin: 0 4px;
+  border-radius: 5px;
+  border: none;
+  background: #4a90e2;
+  color: white;
+  cursor: pointer;
+}
+
+#pagination button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}

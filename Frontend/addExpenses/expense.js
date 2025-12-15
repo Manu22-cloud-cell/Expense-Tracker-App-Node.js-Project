@@ -1,5 +1,8 @@
 const API_URL = "http://localhost:3000/expenses";
 
+let currentPage = 1;
+const ITEMS_PER_PAGE = 10;
+
 let editExpenseId = null; // store id when editing
 
 // -------- MAIN ON PAGE LOAD --------
@@ -66,15 +69,57 @@ function handleFormSubmit(event) {
 }
 
 // READ (fetch all expenses)
-function getAllExpenses() {
+function getAllExpenses(page = 1) {
   axios
-    .get(API_URL, { headers: { Authorization: localStorage.getItem("token") } })
+    .get(`${API_URL}?page=${page}&limit=${ITEMS_PER_PAGE}`, {
+      headers: { Authorization: localStorage.getItem("token") }
+    })
     .then((response) => {
       const expenseList = document.getElementById("expenses-list");
       expenseList.innerHTML = "";
-      response.data.forEach((expense) => displayExpenseOnScreen(expense));
+
+      response.data.expenses.forEach(expense =>
+        displayExpenseOnScreen(expense)
+      );
+
+      renderPagination(
+        response.data.currentPage,
+        response.data.totalPages
+      );
+
+      currentPage = response.data.currentPage;
     })
     .catch((err) => console.log(err));
+}
+
+function renderPagination(current, total) {
+  let paginationDiv = document.getElementById("pagination");
+
+  if (!paginationDiv) {
+    paginationDiv = document.createElement("div");
+    paginationDiv.id = "pagination";
+    paginationDiv.style.textAlign = "center";
+    paginationDiv.style.marginTop = "20px";
+    document.querySelector(".left-section").appendChild(paginationDiv);
+  }
+
+  paginationDiv.innerHTML = `
+    <button ${current === 1 ? "disabled" : ""} onclick="getAllExpenses(${current - 1})">
+      ⬅ Prev
+    </button>
+
+    <span style="margin: 0 10px;">
+      Page ${current} of ${total}
+    </span>
+
+    <button ${current === total ? "disabled" : ""} onclick="getAllExpenses(${current + 1})">
+      Next ➡
+    </button>
+
+    <button ${current === total ? "disabled" : ""} onclick="getAllExpenses(${total})">
+      Last
+    </button>
+  `;
 }
 
 
@@ -105,7 +150,7 @@ function displayExpenseOnScreen(expense) {
         headers: { Authorization: localStorage.getItem("token") },
       })
       .then(() => {
-        expenseList.removeChild(li);
+        getAllExpenses(currentPage);
       })
       .catch((err) => console.log(err));
   });

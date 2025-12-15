@@ -51,15 +51,30 @@ const getAllExpenses = async (req, res) => {
         const token = req.headers.authorization;
         const decoded = jwt.verify(token, SECRET_KEY);
 
-        const expenses = await Expenses.findAll({
-            where: { userId: decoded.userId }
+        // pagination inputs
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+
+        const { count, rows } = await Expenses.findAndCountAll({
+            where: { userId: decoded.userId },
+            limit,
+            offset,
+            order: [["createdAt", "DESC"]]
         });
 
-        res.status(200).json(expenses);
+        res.status(200).json({
+            expenses: rows,
+            currentPage: page,
+            totalPages: Math.ceil(count / limit),
+            totalExpenses: count
+        });
+
     } catch (error) {
-        res.status(500).send({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 };
+
 
 
 
