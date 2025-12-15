@@ -137,12 +137,18 @@ document.getElementById("premium-btn").addEventListener("click", () => {
     });
 });
 
+//Generate report
+document.getElementById("reports-btn").addEventListener("click", () => {
+  window.location.href = "../reports/reports.html";
+});
+
 // Check premium and update UI
 function checkPremiumStatus() {
   const isPremium = localStorage.getItem("isPremium");
   if (isPremium === "true") {
     showPremiumBadge();
     document.getElementById("premium-btn").style.display = "none";
+    document.getElementById("reports-btn").style.display = "inline-block";
   }
 }
 
@@ -163,7 +169,6 @@ function showPremiumBadge() {
   header.appendChild(badge);
   header.appendChild(leaderBoardBtn);
 }
-
 
 // -------- LEADERBOARD --------
 function getLeaderboard() {

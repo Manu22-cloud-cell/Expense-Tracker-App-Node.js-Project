@@ -1,4 +1,4 @@
-const { Cashfree, CFEnvironment }=require("cashfree-pg");
+const { Cashfree, CFEnvironment } = require("cashfree-pg");
 
 const cashfree = new Cashfree(
   CFEnvironment.SANDBOX,
@@ -18,7 +18,7 @@ exports.createOrder = async (orderId, amount, customerId, email, phone) => {
         customer_phone: phone || "9999999999",
       },
       order_meta: {
-        return_url:`http://localhost:3000/payment/success.html?orderId=${orderId}`,
+        return_url: `http://localhost:3000/payment/success.html?orderId=${orderId}`,
       }
     };
 

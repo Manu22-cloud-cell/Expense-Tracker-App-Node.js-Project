@@ -2,6 +2,7 @@ const tranEmailApi = require("../utils/email");
 const bcrypt = require("bcryptjs");
 const ForgotPasswordRequests = require("../models/forgotPasswordReq");
 const User = require("../models/users");
+const path = require("path");
 
 const forgotPassword = async (req, res) => {
   try {
@@ -52,12 +53,9 @@ const resetPasswordPage = async (req, res) => {
       return res.status(400).send("Link expired or invalid");
     }
 
-    res.send(`
-      <form action="/password/updatepassword/${id}" method="POST">
-        <input type="password" name="password" placeholder="New Password" required />
-        <button type="submit">Update Password</button>
-      </form>
-    `);
+    res.sendFile(
+      path.join(__dirname, "../Frontend/password/resetPassword.html")
+    );
 
   } catch (error) {
     res.status(500).send("Error loading reset page");
