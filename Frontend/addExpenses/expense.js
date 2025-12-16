@@ -1,7 +1,7 @@
 const API_URL = "http://localhost:3000/expenses";
 
 let currentPage = 1;
-const ITEMS_PER_PAGE = 10;
+let ITEMS_PER_PAGE = Number(localStorage.getItem("itemsPerPage")) || 10;
 
 let editExpenseId = null; // store id when editing
 
@@ -26,9 +26,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Check premium user status and update UI
   checkPremiumStatus();
 
+  const itemsPerPageSelect = document.getElementById("itemsPerPage");
+
+  if (itemsPerPageSelect) {
+    itemsPerPageSelect.value = ITEMS_PER_PAGE;
+
+    itemsPerPageSelect.addEventListener("change", (e) => {
+      ITEMS_PER_PAGE = Number(e.target.value);
+      localStorage.setItem("itemsPerPage", ITEMS_PER_PAGE);
+
+      currentPage = 1; // reset to first page
+      getAllExpenses(currentPage);
+    });
+  }
+
   // Load existing expenses
   getAllExpenses();
-
 });
 
 // -------- CRUD FUNCTIONS --------
