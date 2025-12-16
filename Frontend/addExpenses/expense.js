@@ -53,7 +53,8 @@ function handleFormSubmit(event) {
   const expenseDetails = {
     amount: event.target.amount.value,
     description: event.target.description.value,
-    category: event.target.category.value,
+    note: event.target.note.value,
+    category: event.target.category.value
   };
 
   const token = localStorage.getItem("token");
@@ -141,7 +142,12 @@ function displayExpenseOnScreen(expense) {
   const expenseList = document.getElementById("expenses-list");
 
   const li = document.createElement("li");
-  li.textContent = `Rs.${expense.amount} - ${expense.description} - ${expense.category} `;
+  li.innerHTML = `
+  <strong>₹${expense.amount}</strong> -
+  ${expense.description} -
+  ${expense.category}
+  ${expense.note ? `<br/><small>📝 ${expense.note}</small>` : ""}
+`;
 
   // Edit Button
   const editBtn = document.createElement("button");
@@ -149,6 +155,7 @@ function displayExpenseOnScreen(expense) {
   editBtn.addEventListener("click", () => {
     document.getElementById("amount").value = expense.amount;
     document.getElementById("description").value = expense.description;
+    document.getElementById("note").value = expense.note || "";
     document.getElementById("category").value = expense.category;
     document.getElementById("add-btn").textContent = "Update";
     editExpenseId = expense.id;

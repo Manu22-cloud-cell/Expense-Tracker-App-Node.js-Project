@@ -10,7 +10,7 @@ const sequelize = require('../utils/db-connection');
 const addExpenses = async (req, res) => {
     try {
 
-        const { amount, description, category } = req.body;
+        const { amount, description, category, note } = req.body;
         const decoded = jwt.verify(req.headers.authorization, SECRET_KEY);
 
         const result = await sequelize.transaction(async (t) => {
@@ -25,6 +25,7 @@ const addExpenses = async (req, res) => {
                     amount,
                     description,
                     category: finalCategory,
+                    note,
                     userId: decoded.userId
                 },
                 { transaction: t }
@@ -82,7 +83,7 @@ const getAllExpenses = async (req, res) => {
 const updateExpense = async (req, res) => {
     try {
         const { id } = req.params;
-        const { amount, description, category } = req.body;
+        const { amount, description, category, note } = req.body;
         const decoded = jwt.verify(req.headers.authorization, SECRET_KEY);
 
         const updatedExpense = await sequelize.transaction(async (t) => {
@@ -99,7 +100,7 @@ const updateExpense = async (req, res) => {
             const diff = Number(amount) - existingExpense.amount;
 
             await existingExpense.update(
-                { amount, description, category },
+                { amount, description, category, note },
                 { transaction: t }
             );
 
