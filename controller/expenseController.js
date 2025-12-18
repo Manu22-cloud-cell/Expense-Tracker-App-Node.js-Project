@@ -1,17 +1,29 @@
 const Expenses = require('../models/expenses');
 const User = require('../models/users');
 const jwt = require("jsonwebtoken");
-const SECRET_KEY = "mySecretKey";
 const { autoCategorize } = require("../services/aiCategoryService");
 const sequelize = require('../utils/db-connection');
 
 
 // ADD EXPENSE
-const addExpenses = async (req, res) => {
+const addExpenses = async (req, res, next) => {
     try {
-
         const { amount, description, category, note } = req.body;
-        const decoded = jwt.verify(req.headers.authorization, SECRET_KEY);
+
+        if (!amount || !description) {
+            const err = new Error("Amount and description are required");
+            err.statusCode = 400;
+            throw err;
+        }
+
+        const token = req.headers.authorization;
+        if (!token) {
+            const err = new Error("Authorization token missing");
+            err.statusCode = 401;
+            throw err;
+        }
+
+        const decoded = jwt.verify(token, process.env.SECRET_KEY);
 
         const result = await sequelize.transaction(async (t) => {
 
@@ -36,21 +48,29 @@ const addExpenses = async (req, res) => {
                 { where: { id: decoded.userId }, transaction: t }
             );
 
-            return expense; // returned from transaction
+            return expense;
         });
 
         res.status(201).json(result);
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        error.statusCode = error.statusCode || 500;
+        next(error);
     }
 };
 
 // GET ALL
-const getAllExpenses = async (req, res) => {
+const getAllExpenses = async (req, res, next) => {
     try {
         const token = req.headers.authorization;
-        const decoded = jwt.verify(token, SECRET_KEY);
+
+        if (!token) {
+            const err = new Error("Authorization token missing");
+            err.statusCode = 401;
+            throw err;
+        }
+
+        const decoded = jwt.verify(token, process.env.SECRET_KEY);
 
         // pagination inputs
         const page = Number(req.query.page) || 1;
@@ -72,19 +92,17 @@ const getAllExpenses = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        error.statusCode = error.statusCode || 500;
+        next(error);
     }
 };
 
-
-
-
 // UPDATE EXPENSE
-const updateExpense = async (req, res) => {
+const updateExpense = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { amount, description, category, note } = req.body;
-        const decoded = jwt.verify(req.headers.authorization, SECRET_KEY);
+        const decoded = jwt.verify(req.headers.authorization, process.env.SECRET_KEY);
 
         const updatedExpense = await sequelize.transaction(async (t) => {
 
@@ -94,7 +112,9 @@ const updateExpense = async (req, res) => {
             });
 
             if (!existingExpense) {
-                throw new Error("Expense not found or unauthorized");
+                const err = new Error("Expense not found or unauthorized");
+                err.statusCode = 404;
+                throw err;
             }
 
             const diff = Number(amount) - existingExpense.amount;
@@ -115,24 +135,32 @@ const updateExpense = async (req, res) => {
         res.status(200).json(updatedExpense);
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        error.statusCode=500;
+        next(error);
     }
 };
 
 // DELETE EXPENSE
-const deleteExpense = async (req, res) => {
+const deleteExpense = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const decoded = jwt.verify(req.headers.authorization, SECRET_KEY);
+
+        const decoded = jwt.verify(
+            req.headers.authorization,
+            process.env.SECRET_KEY
+        );
 
         await sequelize.transaction(async (t) => {
+
             const expense = await Expenses.findOne({
                 where: { id, userId: decoded.userId },
                 transaction: t
             });
 
             if (!expense) {
-                throw new Error("Expense not found or unauthorized");
+                const err = new Error("Expense not found or unauthorized");
+                err.statusCode = 404;
+                throw err;
             }
 
             await User.increment(
@@ -143,10 +171,14 @@ const deleteExpense = async (req, res) => {
             await expense.destroy({ transaction: t });
         });
 
-        res.status(200).send("Expense deleted successfully");
+        res.status(200).json({
+            success: true,
+            message: "Expense deleted successfully"
+        });
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        error.statusCode = error.statusCode || 500;
+        next(error);
     }
 };
 

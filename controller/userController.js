@@ -1,72 +1,106 @@
 const Users = require('../models/users');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const SECRET_KEY = "mySecretKey";
 
-const userSignUp = async (req, res) => {
+//SIGN UP 
 
-    try {
-        const { userName, email, password } = req.body;
+const userSignUp = async (req, res, next) => {
+  try {
+    const { userName, email, password } = req.body;
 
-        // Convert email to lowercase before saving
-        const normalizedEmail = email.toLowerCase();
-
-        //check if user already exist
-        const existingUser = await Users.findOne({ where: { email: normalizedEmail } });
-
-        if (existingUser) {
-            return res.status(409).json({ message: "Email already registered" });
-        }
-
-        //Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const newUser = await Users.create({
-            userName: userName,
-            email: normalizedEmail,
-            password: hashedPassword
-        });
-
-        console.log("New User account is created");
-        res.status(201).json({ message: "User created succuessfully", newUser })
-
-    } catch (error) {
-        console.log.apply(error);
-        res.status(409).send({ error: "Email already registered" });
+    if (!userName || !email || !password) {
+      const err = new Error("All fields are required");
+      err.statusCode = 400;
+      throw err;
     }
+
+    const normalizedEmail = email.toLowerCase();
+
+    const existingUser = await Users.findOne({
+      where: { email: normalizedEmail }
+    });
+
+    if (existingUser) {
+      const err = new Error("Email already registered");
+      err.statusCode = 409;
+      throw err;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await Users.create({
+      userName,
+      email: normalizedEmail,
+      password: hashedPassword
+    });
+
+    res.status(201).json({
+      message: "User created successfully",
+      userId: newUser.id
+    });
+
+  } catch (error) {
+    error.statusCode = error.statusCode || 500;
+    next(error);
+  }
 };
 
-const userLogin = async (req, res) => {
-    try {
-        const { email, password } = req.body;
+//LOGIN
 
-        const normalizedEmail = email.toLowerCase();
+const userLogin = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
 
-        const user = await Users.findOne({ where: { email: normalizedEmail } });
-
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-
-        if (!isMatch) {
-            return res.status(401).json({ message: "Incorrect password" });
-        }
-
-        //Generate token
-        const token = jwt.sign({ userId: user.id, email: user.email }, SECRET_KEY);
-
-
-        res.status(200).json({ message: "Login Successful", token, username: user.userName, isPremium: user.isPremium || false });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: "Server error" })
+    if (!email || !password) {
+      const err = new Error("Email and password are required");
+      err.statusCode = 400;
+      throw err;
     }
-}
+
+    const normalizedEmail = email.toLowerCase();
+
+    const user = await Users.findOne({
+      where: { email: normalizedEmail }
+    });
+
+    if (!user) {
+      const err = new Error("User not found");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      const err = new Error("Incorrect password");
+      err.statusCode = 401;
+      throw err;
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.userName,
+        isPremium: user.isPremium || false
+      },
+      process.env.SECRET_KEY,
+      { expiresIn: "1h" }
+    );
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      username: user.userName,
+      isPremium: user.isPremium || false
+    });
+
+  } catch (error) {
+    error.statusCode = error.statusCode || 500;
+    next(error);
+  }
+};
 
 module.exports = {
-    userSignUp,
-    userLogin
-}
+  userSignUp,
+  userLogin
+};

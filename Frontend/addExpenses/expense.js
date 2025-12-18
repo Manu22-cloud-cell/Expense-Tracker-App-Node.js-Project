@@ -1,13 +1,47 @@
-const API_URL = "http://localhost:3000/expenses";
+const API_BASE_URL = "http://localhost:3000";
 
 let currentPage = 1;
 let ITEMS_PER_PAGE = Number(localStorage.getItem("itemsPerPage")) || 10;
+let editExpenseId = null;
 
-let editExpenseId = null; // store id when editing
+//CENTRAL ERROR HANDLER
 
-// -------- MAIN ON PAGE LOAD --------
+function handleApiError(error, fallbackMessage = "Something went wrong") {
+  if (!error.response) {
+    alert("Network error. Please check your internet connection.");
+    return;
+  }
+
+  const status = error.response.status;
+  const message = error.response.data?.message || fallbackMessage;
+
+  if (status === 401 || status === 403) {
+    alert("Session expired. Please login again.");
+    localStorage.clear();
+    window.location.href = "../login/login.html";
+    return;
+  }
+
+  alert(message);
+}
+
+//AXIOS INTERCEPTOR
+
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      alert("Session expired. Please login again.");
+      localStorage.clear();
+      window.location.href = "../login/login.html";
+    }
+    return Promise.reject(error);
+  }
+);
+
+//PAGE LOAD 
+
 document.addEventListener("DOMContentLoaded", () => {
-
   const token = localStorage.getItem("token");
 
   if (!token) {
@@ -16,37 +50,31 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  // Show Welcome username
   const username = localStorage.getItem("username");
   const welcomeDiv = document.getElementById("welcomeBox");
   if (username && welcomeDiv) {
     welcomeDiv.textContent = `Welcome ${username}!!`;
   }
 
-  // Check premium user status and update UI
   checkPremiumStatus();
 
   const itemsPerPageSelect = document.getElementById("itemsPerPage");
-
   if (itemsPerPageSelect) {
     itemsPerPageSelect.value = ITEMS_PER_PAGE;
 
     itemsPerPageSelect.addEventListener("change", (e) => {
       ITEMS_PER_PAGE = Number(e.target.value);
       localStorage.setItem("itemsPerPage", ITEMS_PER_PAGE);
-
-      currentPage = 1; // reset to first page
+      currentPage = 1;
       getAllExpenses(currentPage);
     });
   }
 
-  // Load existing expenses
   getAllExpenses();
 });
 
-// -------- CRUD FUNCTIONS --------
+//CREATE / UPDATE EXPENSE 
 
-// CREATE or UPDATE expense
 function handleFormSubmit(event) {
   event.preventDefault();
 
@@ -59,42 +87,40 @@ function handleFormSubmit(event) {
 
   const token = localStorage.getItem("token");
 
-  if (editExpenseId) {
-    axios
-      .put(`${API_URL}/update/${editExpenseId}`, expenseDetails, {
-        headers: { Authorization: token },
-      })
-      .then(() => {
-        editExpenseId = null;
-        document.getElementById("add-btn").textContent = "Add Expense";
-        getAllExpenses();
-      })
-      .catch((err) => console.log(err));
-  } else {
-    axios
-      .post(`${API_URL}/add`, expenseDetails, {
-        headers: { Authorization: token },
-      })
-      .then(() => getAllExpenses())
-      .catch((err) => console.log(err));
-  }
+  const request = editExpenseId
+    ? axios.put(
+        `${API_BASE_URL}/expenses/update/${editExpenseId}`,
+        expenseDetails,
+        { headers: { Authorization: token } }
+      )
+    : axios.post(
+        `${API_BASE_URL}/expenses/add`,
+        expenseDetails,
+        { headers: { Authorization: token } }
+      );
 
-  event.target.reset();
+  request
+    .then(() => {
+      editExpenseId = null;
+      document.getElementById("add-btn").textContent = "Add Expense";
+      getAllExpenses(currentPage);
+      event.target.reset();
+    })
+    .catch((err) => handleApiError(err, "Failed to save expense"));
 }
 
-// READ (fetch all expenses)
+//READ EXPENSES
+
 function getAllExpenses(page = 1) {
   axios
-    .get(`${API_URL}?page=${page}&limit=${ITEMS_PER_PAGE}`, {
+    .get(`${API_BASE_URL}/expenses/?page=${page}&limit=${ITEMS_PER_PAGE}`, {
       headers: { Authorization: localStorage.getItem("token") }
     })
     .then((response) => {
       const expenseList = document.getElementById("expenses-list");
       expenseList.innerHTML = "";
 
-      response.data.expenses.forEach(expense =>
-        displayExpenseOnScreen(expense)
-      );
+      response.data.expenses.forEach(displayExpenseOnScreen);
 
       renderPagination(
         response.data.currentPage,
@@ -103,8 +129,10 @@ function getAllExpenses(page = 1) {
 
       currentPage = response.data.currentPage;
     })
-    .catch((err) => console.log(err));
+    .catch((err) => handleApiError(err, "Unable to load expenses"));
 }
+
+//PAGINATION
 
 function renderPagination(current, total) {
   let paginationDiv = document.getElementById("pagination");
@@ -118,99 +146,81 @@ function renderPagination(current, total) {
   }
 
   paginationDiv.innerHTML = `
-    <button ${current === 1 ? "disabled" : ""} onclick="getAllExpenses(${current - 1})">
-      ⬅ Prev
-    </button>
-
-    <span style="margin: 0 10px;">
-      Page ${current} of ${total}
-    </span>
-
-    <button ${current === total ? "disabled" : ""} onclick="getAllExpenses(${current + 1})">
-      Next ➡
-    </button>
-
-    <button ${current === total ? "disabled" : ""} onclick="getAllExpenses(${total})">
-      Last
-    </button>
+    <button ${current === 1 ? "disabled" : ""} onclick="getAllExpenses(${current - 1})">⬅ Prev</button>
+    <span style="margin: 0 10px;">Page ${current} of ${total}</span>
+    <button ${current === total ? "disabled" : ""} onclick="getAllExpenses(${current + 1})">Next ➡</button>
+    <button ${current === total ? "disabled" : ""} onclick="getAllExpenses(${total})">Last</button>
   `;
 }
 
+//DISPLAY EXPENSE
 
-// DISPLAY expenses
 function displayExpenseOnScreen(expense) {
   const expenseList = document.getElementById("expenses-list");
-
   const li = document.createElement("li");
-  li.innerHTML = `
-  <strong>₹${expense.amount}</strong> -
-  ${expense.description} -
-  ${expense.category}
-  ${expense.note ? `<br/><small>📝 ${expense.note}</small>` : ""}
-`;
 
-  // Edit Button
+  const textSpan = document.createElement("span");
+  textSpan.innerHTML = `
+    <strong>₹${expense.amount}</strong> -
+    ${expense.description} -
+    ${expense.category}
+    ${expense.note ? `- ${expense.note}` : ""}
+  `;
+
   const editBtn = document.createElement("button");
   editBtn.textContent = "Edit";
-  editBtn.addEventListener("click", () => {
+  editBtn.onclick = () => {
     document.getElementById("amount").value = expense.amount;
     document.getElementById("description").value = expense.description;
     document.getElementById("note").value = expense.note || "";
     document.getElementById("category").value = expense.category;
     document.getElementById("add-btn").textContent = "Update";
     editExpenseId = expense.id;
-  });
+  };
 
-  // Delete Button
   const deleteBtn = document.createElement("button");
   deleteBtn.textContent = "Delete";
-  deleteBtn.addEventListener("click", () => {
+  deleteBtn.onclick = () => {
     axios
-      .delete(`${API_URL}/delete/${expense.id}`, {
-        headers: { Authorization: localStorage.getItem("token") },
+      .delete(`${API_BASE_URL}/expenses/delete/${expense.id}`, {
+        headers: { Authorization: localStorage.getItem("token") }
       })
-      .then(() => {
-        getAllExpenses(currentPage);
-      })
-      .catch((err) => console.log(err));
-  });
+      .then(() => getAllExpenses(currentPage))
+      .catch((err) => handleApiError(err, "Failed to delete expense"));
+  };
 
-  li.appendChild(editBtn);
-  li.appendChild(deleteBtn);
+  const btnContainer = document.createElement("div");
+  btnContainer.classList.add("expense-actions");
+  btnContainer.append(editBtn, deleteBtn);
+
+  li.append(textSpan, btnContainer);
   expenseList.appendChild(li);
 }
 
+//PREMIUM
 
-// -------- PREMIUM FEATURES --------
-
-// Trigger Payment
 document.getElementById("premium-btn").addEventListener("click", () => {
   axios
     .post(
-      "http://localhost:3000/payment/create-order",
+      `${API_BASE_URL}/payment/create-order`,
       { phone: "9999999999" },
       { headers: { Authorization: localStorage.getItem("token") } }
     )
     .then((response) => {
-      const { sessionId } = response.data;
       const cashfree = Cashfree({ mode: "sandbox" });
-      cashfree.checkout({ paymentSessionId: sessionId });
+      cashfree.checkout({ paymentSessionId: response.data.sessionId });
     })
-    .catch((error) => {
-      alert("Payment could not start. Try again.");
-      console.error(error);
-    });
+    .catch((err) => handleApiError(err, "Payment could not be started"));
 });
 
-//Generate report
 document.getElementById("reports-btn").addEventListener("click", () => {
   window.location.href = "../reports/reports.html";
 });
 
-// Check premium and update UI
+//PREMIUM UI
+
 function checkPremiumStatus() {
-  const isPremium = localStorage.getItem("isPremium");
-  if (isPremium === "true") {
+  if (localStorage.getItem("isPremium") === "true") {
     showPremiumBadge();
     document.getElementById("premium-btn").style.display = "none";
     document.getElementById("reports-btn").style.display = "inline-block";
@@ -218,56 +228,42 @@ function checkPremiumStatus() {
 }
 
 function showPremiumBadge() {
-  const header = document.getElementById("header");
-
-  // Premium Badge
   const badge = document.createElement("span");
   badge.textContent = "Premium Member";
   badge.classList.add("premium-badge");
 
-  // Leaderboard Button
-  const leaderBoardBtn = document.createElement("button");
-  leaderBoardBtn.textContent = "Show Leaderboard";
-  leaderBoardBtn.classList.add("leaderboard-btn");
-  leaderBoardBtn.addEventListener("click", getLeaderboard);
+  const leaderboardBtn = document.createElement("button");
+  leaderboardBtn.textContent = "Show Leaderboard";
+  leaderboardBtn.classList.add("leaderboard-btn");
+  leaderboardBtn.onclick = getLeaderboard;
 
-  header.appendChild(badge);
-  header.appendChild(leaderBoardBtn);
+  document.getElementById("premium-member").appendChild(badge);
+  document.getElementById("leader-board").appendChild(leaderboardBtn);
 }
 
-// -------- LEADERBOARD --------
+//LEADERBOARD
+
 function getLeaderboard() {
   axios
-    .get("http://localhost:3000/expenses/leaderboard", {
-      headers: { Authorization: localStorage.getItem("token") },
+    .get(`${API_BASE_URL}/expenses/leaderboard`, {
+      headers: { Authorization: localStorage.getItem("token") }
     })
     .then((response) => {
-      const leaderboard = response.data;
       const container = document.getElementById("leaderboard-container");
       container.classList.remove("hidden");
 
       container.innerHTML = `
         <h3>Leaderboard</h3>
-        <table border="1" style="border-collapse: collapse; width: 50%; margin-top: 10px;">
-          <tr style="background: #eee;">
-            <th>Name</th>
-            <th>Total Expense</th>
-          </tr>
-          ${leaderboard
-          .map(
-            (user) => `
+        <table border="1" style="border-collapse: collapse; width: 50%;">
+          <tr><th>Name</th><th>Total Expense</th></tr>
+          ${response.data.map(user => `
             <tr>
               <td>${user.userName || "Unknown"}</td>
               <td>₹${user.totalExpense || 0}</td>
-            </tr>`
-          )
-          .join("")}
+            </tr>
+          `).join("")}
         </table>
       `;
     })
-    .catch((err) => {
-      alert("Unable to load leaderboard");
-      console.log(err);
-    });
+    .catch((err) => handleApiError(err, "Unable to load leaderboard"));
 }
-

@@ -4,24 +4,35 @@ const ForgotPasswordRequests = require("../models/forgotPasswordReq");
 const User = require("../models/users");
 const path = require("path");
 
-const forgotPassword = async (req, res) => {
+
+//FORGOT PASSWORD
+
+const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
 
+    if (!email) {
+      const err = new Error("Email is required");
+      err.statusCode = 400;
+      throw err;
+    }
+
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      const err = new Error("User not found");
+      err.statusCode = 404;
+      throw err;
     }
 
     const request = await ForgotPasswordRequests.create({
       userId: user.id
     });
 
-    const resetLink = `http://localhost:3000/password/resetpassword/${request.id}`;
+    const resetLink = `${process.env.API_BASE_URL}/password/resetpassword/${request.id}`;
 
     await tranEmailApi.sendTransacEmail({
       sender: {
-        email: "manojkymanu6@gmail.com", // MUST be verified
+        email: process.env.EMAIL_SENDER,
         name: "Expense Tracker"
       },
       to: [{ email }],
@@ -35,22 +46,27 @@ const forgotPassword = async (req, res) => {
 
     res.status(200).json({ message: "Reset email sent successfully" });
 
-  } catch (err) {
-    console.error("Sendinblue Error:", err);
-    res.status(500).json({ message: "Failed to send reset email" });
+  } catch (error) {
+    error.statusCode = error.statusCode || 500;
+    next(error);
   }
-}
+};
 
-const resetPasswordPage = async (req, res) => {
+
+//RESET PASSWORD PAGE
+
+const resetPasswordPage = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const request = await ForgotPasswordRequests.findOne({
       where: { id, isActive: true }
-    })
+    });
 
     if (!request) {
-      return res.status(400).send("Link expired or invalid");
+      const err = new Error("Link expired or invalid");
+      err.statusCode = 400;
+      throw err;
     }
 
     res.sendFile(
@@ -58,23 +74,33 @@ const resetPasswordPage = async (req, res) => {
     );
 
   } catch (error) {
-    res.status(500).send("Error loading reset page");
+    error.statusCode = error.statusCode || 500;
+    next(error);
   }
-}
+};
 
-const updatePassword = async (req, res) => {
+
+//UPDATE PASSWORD
+
+const updatePassword = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { password } = req.body;
 
-    console.log("BODY:", req.body);
+    if (!password) {
+      const err = new Error("Password is required");
+      err.statusCode = 400;
+      throw err;
+    }
 
     const request = await ForgotPasswordRequests.findOne({
       where: { id, isActive: true }
     });
 
     if (!request) {
-      return res.status(400).send("Invalid or expired link");
+      const err = new Error("Invalid or expired link");
+      err.statusCode = 400;
+      throw err;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -90,15 +116,16 @@ const updatePassword = async (req, res) => {
     );
 
     res.send("<h3>Password updated successfully. You can login now.</h3>");
+
   } catch (error) {
-    res.status(500).send("Failed to reset password");
+    error.statusCode = error.statusCode || 500;
+    next(error);
   }
-}
-
-
+};
 
 module.exports = {
   forgotPassword,
   resetPasswordPage,
   updatePassword
 };
+

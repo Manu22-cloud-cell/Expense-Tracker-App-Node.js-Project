@@ -1,16 +1,22 @@
 const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize('expensedb', 'root', '252582', {
-    host: 'localhost',
-    dialect: 'mysql'
-});
+const sequelize = new Sequelize(
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
+    {
+        host: process.env.DB_HOST,
+        dialect: process.env.DB_DIALECT,
+        logging: process.env.NODE_ENV !== 'production'
+    }
+);
 
 (async () => {
     try {
         await sequelize.authenticate();
-        console.log("Connection to the Database has been created");
+        console.log("Database connected successfully");
     } catch (error) {
-        console.log(error);
+        console.error("Unable to connect to DB:", error.message);
     }
 })();
 

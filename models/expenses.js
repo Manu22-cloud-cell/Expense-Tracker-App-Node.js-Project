@@ -1,4 +1,4 @@
-const { Sequelize, DataTypes, Model } = require('sequelize');
+const { Sequelize, DataTypes} = require('sequelize');
 const sequelize = require('../utils/db-connection');
 
 const Expenses = sequelize.define('expenses', {

@@ -1,7 +1,7 @@
-const User = require('../models/users');
+const User = require("../models/users");
 const sequelize = require("../utils/db-connection");
 
-exports.getLeaderboard = async (req, res) => {
+exports.getLeaderboard = async (req, res, next) => {
   try {
     const leaderboard = await User.findAll({
       attributes: ["userName", "totalExpense"],
@@ -9,10 +9,12 @@ exports.getLeaderboard = async (req, res) => {
     });
 
     res.status(200).json(leaderboard);
+
   } catch (error) {
-    console.log("Leaderboard ERROR:", error);
-    res.status(500).json({ message: "Unable to fetch leaderboard" });
+    error.statusCode = error.statusCode || 500;
+    next(error);
   }
 };
+
 
 

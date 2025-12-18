@@ -1,0 +1,19 @@
+
+[2025-12-18T06:37:53.727Z]
+METHOD: POST
+URL: /users/login
+STATUS: 401
+MESSAGE: Incorrect password
+STACK: Error: Incorrect password
+    at userLogin (C:\Users\DELL\Desktop\sharpenerProjects\Expense Tracker-Node.js Project\controller\userController.js:75:19)
+----------------------------------
+
+[2025-12-18T06:38:51.357Z]
+METHOD: POST
+URL: /users/login
+STATUS: 404
+MESSAGE: User not found
+STACK: Error: User not found
+    at userLogin (C:\Users\DELL\Desktop\sharpenerProjects\Expense Tracker-Node.js Project\controller\userController.js:67:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+----------------------------------

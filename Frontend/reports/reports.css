@@ -56,3 +56,11 @@ table th {
   margin-bottom: 15px;
   max-width: 900px;
 }
+#report-table td {
+  vertical-align: top;
+}
+
+#report-table td:nth-child(4) {
+  font-size: 13px;
+  color: #555;
+}

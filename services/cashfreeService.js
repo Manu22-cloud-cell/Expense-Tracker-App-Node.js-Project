@@ -1,9 +1,11 @@
 const { Cashfree, CFEnvironment } = require("cashfree-pg");
 
 const cashfree = new Cashfree(
-  CFEnvironment.SANDBOX,
-  "TEST430329ae80e0f32e41a393d78b923034", // API Key
-  "TESTaf195616268bd6202eeb3bf8dc458956e7192a85"  // Secret Key
+  process.env.CASHFREE_ENV === 'production'
+    ? CFEnvironment.PRODUCTION
+    : CFEnvironment.SANDBOX,
+  process.env.CASHFREE_API_KEY,
+  process.env.CASHFREE_SECRET_KEY
 );
 
 exports.createOrder = async (orderId, amount, customerId, email, phone) => {
@@ -18,7 +20,7 @@ exports.createOrder = async (orderId, amount, customerId, email, phone) => {
         customer_phone: phone || "9999999999",
       },
       order_meta: {
-        return_url: `http://localhost:3000/payment/success.html?orderId=${orderId}`,
+        return_url: `${process.env.API_BASE_URL}/payment/success.html?orderId=${orderId}`,
       }
     };
 

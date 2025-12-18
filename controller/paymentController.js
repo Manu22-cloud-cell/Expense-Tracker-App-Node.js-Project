@@ -1,29 +1,44 @@
 const { Cashfree, CFEnvironment } = require("cashfree-pg");
 const { createOrder } = require("../services/cashfreeService");
-const Payment = require('../models/payment');
-const User = require('../models/users');
+const Payment = require("../models/payment");
+const User = require("../models/users");
 const jwt = require("jsonwebtoken");
-const SECRET_KEY = "mySecretKey";
 
 const cashfree = new Cashfree(
-  CFEnvironment.SANDBOX,
-  "TEST430329ae80e0f32e41a393d78b923034", // API Key
-  "TESTaf195616268bd6202eeb3bf8dc458956e7192a85"  // Secret Key
+  process.env.CASHFREE_ENV === "production"
+    ? CFEnvironment.PRODUCTION
+    : CFEnvironment.SANDBOX,
+  process.env.CASHFREE_API_KEY,
+  process.env.CASHFREE_SECRET_KEY
 );
 
-exports.initiatePayment = async (req, res) => {
+
+//INITIATE PAYMENT
+
+exports.initiatePayment = async (req, res, next) => {
   try {
     const token = req.headers.authorization;
-    const decoded = jwt.verify(token, SECRET_KEY);
+    if (!token) {
+      const err = new Error("Authorization token missing");
+      err.statusCode = 401;
+      throw err;
+    }
 
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const { phone, email } = req.body;
+
+    if (!phone || !email) {
+      const err = new Error("Phone and email are required");
+      err.statusCode = 400;
+      throw err;
+    }
 
     const orderId = "ORDER_" + Date.now();
     const amount = 199;
 
     const sessionId = await createOrder(
       orderId,
-      amount,  // Premium Subscription Fee
+      amount,
       decoded.userId,
       email,
       phone
@@ -36,48 +51,87 @@ exports.initiatePayment = async (req, res) => {
       paymentStatus: "PENDING"
     });
 
-    res.json({ orderId, sessionId });
+    res.status(200).json({ orderId, sessionId });
 
-  } catch (err) {
-    console.error("Payment Error:", err);
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    error.statusCode = error.statusCode || 500;
+    next(error);
   }
 };
 
-exports.paymentStatus = async (req, res) => {
-  const { orderId } = req.params;
 
-  const response = await cashfree.PGFetchOrder(orderId);
-  console.log("Payment Status:", response.data);
-  res.json(response.data);
-}
+//PAYMENT STATUS
 
-exports.verifyPayment = async (req, res) => {
+exports.paymentStatus = async (req, res, next) => {
   try {
     const { orderId } = req.params;
+
+    if (!orderId) {
+      const err = new Error("Order ID is required");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const response = await cashfree.PGFetchOrder(orderId);
+    res.status(200).json(response.data);
+
+  } catch (error) {
+    error.statusCode = error.statusCode || 500;
+    next(error);
+  }
+};
+
+
+//VERIFY PAYMENT
+
+exports.verifyPayment = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      const err = new Error("Order ID is required");
+      err.statusCode = 400;
+      throw err;
+    }
 
     const response = await cashfree.PGFetchOrder(orderId);
     const status = response.data.order_status;
 
     const payment = await Payment.findOne({ where: { orderId } });
-    if (!payment) return res.status(404).json({ error: "Order not found" });
+    if (!payment) {
+      const err = new Error("Order not found");
+      err.statusCode = 404;
+      throw err;
+    }
 
     await payment.update({ paymentStatus: status });
-
-    let token = null;
 
     if (status === "PAID") {
       const user = await User.findByPk(payment.userId);
       await user.update({ isPremium: true });
 
-      // 🔥 Generate NEW TOKEN containing updated premium state
-      token = jwt.sign(
-        { userId: user.id, username: user.userName, isPremium: true }, SECRET_KEY, { expiresIn: "1h" }
+      const token = jwt.sign(
+        {
+          userId: user.id,
+          username: user.userName,
+          isPremium: true
+        },
+        process.env.SECRET_KEY,
+        { expiresIn: "1h" }
       );
-      res.json({ message: "Payment updated", status, token, username: user.userName });
+
+      return res.status(200).json({
+        message: "Payment successful",
+        status,
+        token,
+        username: user.userName
+      });
     }
-  } catch (err) {
-    console.error("Verification Error:", err.message);
-    res.status(500).json({ error: err.message });
+
+    res.status(200).json({ message: "Payment status updated", status });
+
+  } catch (error) {
+    error.statusCode = error.statusCode || 500;
+    next(error);
   }
 };

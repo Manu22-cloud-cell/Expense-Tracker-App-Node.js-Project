@@ -1,19 +1,24 @@
 const jwt = require('jsonwebtoken');
-const SECRET_KEY = "mySecretKey";
 
 module.exports = (req, res, next) => {
-    try {
-        const token = req.headers.authorization;
+  try {
+    const token = req.headers.authorization;
 
-        if (!token) {
-            return res.status(401).json({ message: "Access Denied — No Token Provided" });
-        }
-
-        const decoded = jwt.verify(token, SECRET_KEY);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        console.log(error);
-        res.status(401).json({ message: "Invalid or Expired Token" });
+    if (!token) {
+      const error = new Error("Access Denied — No Token Provided");
+      error.statusCode = 401;
+      throw error;
     }
+
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    // If JWT throws, it could be invalid or expired
+    if (!error.statusCode) {
+      error.statusCode = 401;
+      error.message = "Invalid or Expired Token";
+    }
+    next(error); // Pass to centralized error handler
+  }
 };

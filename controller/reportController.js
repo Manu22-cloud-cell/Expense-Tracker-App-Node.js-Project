@@ -1,37 +1,44 @@
 const { Op, fn, col, where, literal } = require("sequelize");
 const Expense = require("../models/expenses");
 
-/**
- * GET /reports?type=daily|monthly|yearly
- */
-exports.getReports = async (req, res) => {
+
+//GET /reports?type=daily|monthly|yearly
+ 
+exports.getReports = async (req, res, next) => {
   try {
     const userId = req.user.userId; // from auth middleware
     const { type, date, month, year } = req.query;
 
+    let result;
+
     if (type === "daily") {
-      return getDailyReport(res, userId, date);
+      result = await getDailyReport(userId, date);
+    } 
+    else if (type === "monthly") {
+      result = await getMonthlyReport(userId, month, year);
+    } 
+    else if (type === "yearly") {
+      result = await getYearlyReport(userId, year);
+    } 
+    else {
+      const err = new Error("Invalid report type");
+      err.statusCode = 400;
+      throw err;
     }
 
-    if (type === "monthly") {
-      return getMonthlyReport(res, userId, month, year);
-    }
+    res.status(200).json(result);
 
-    if (type === "yearly") {
-      return getYearlyReport(res, userId, year);
-    }
-
-    res.status(400).json({ message: "Invalid report type" });
   } catch (error) {
-    console.error("REPORT ERROR:", error);
-    res.status(500).json({ message: "Failed to generate report" });
+    error.statusCode = error.statusCode || 500;
+    next(error);
   }
 };
 
-/* ---------------- DAILY ---------------- */
-async function getDailyReport(res, userId, date) {
+//DAILY 
+
+async function getDailyReport(userId, date) {
   if (!date) {
-    date = new Date().toISOString().split("T")[0]; // today
+    date = new Date().toISOString().split("T")[0];
   }
 
   const start = new Date(`${date} 00:00:00`);
@@ -49,11 +56,12 @@ async function getDailyReport(res, userId, date) {
 
   const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-  res.json({ expenses, totalExpense });
+  return { expenses, totalExpense };
 }
 
-/* ---------------- MONTHLY ---------------- */
-async function getMonthlyReport(res, userId, month, year) {
+//MONTHLY
+
+async function getMonthlyReport(userId, month, year) {
   if (!month || !year) {
     const now = new Date();
     month = now.getMonth() + 1;
@@ -73,11 +81,12 @@ async function getMonthlyReport(res, userId, month, year) {
 
   const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-  res.json({ expenses, totalExpense });
+  return { expenses, totalExpense };
 }
 
-/* ---------------- YEARLY ---------------- */
-async function getYearlyReport(res, userId, year) {
+//YEARLY
+
+async function getYearlyReport(userId, year) {
   if (!year) {
     year = new Date().getFullYear();
   }
@@ -102,7 +111,8 @@ async function getYearlyReport(res, userId, year) {
     0
   );
 
-  res.json({ data, total });
+  return { data, total };
 }
+
 
 

@@ -1,3 +1,5 @@
+const API_BASE_URL="http://localhost:3000"
+
 const isPremium = localStorage.getItem("isPremium");
 
 if (isPremium !== "true") {
@@ -10,7 +12,7 @@ async function fetchReport() {
   const type = document.getElementById("report-type").value;
 
   const res = await axios.get(
-    `http://localhost:3000/reports?type=${type}`,
+    `${API_BASE_URL}/reports?type=${type}`,
     {
       headers: { Authorization: localStorage.getItem("token") }
     }
@@ -64,6 +66,7 @@ function renderExpenseTable(expenses, total) {
       <th>Date</th>
       <th>Description</th>
       <th>Category</th>
+      <th>Note</th>
       <th>Expense</th>
     </tr>
   `;
@@ -74,6 +77,7 @@ function renderExpenseTable(expenses, total) {
       <td>${new Date(e.createdAt).toLocaleDateString()}</td>
       <td>${e.description}</td>
       <td>${e.category || "AI Selected"}</td>
+      <td>${e.note || "-"}</td>
       <td>₹${e.amount}</td>
     </tr>
     `;
@@ -81,7 +85,7 @@ function renderExpenseTable(expenses, total) {
 
   html += `
     <tr>
-      <td colspan="3"><strong>Total</strong></td>
+      <td colspan="4"><strong>Total</strong></td>
       <td><strong>₹${total}</strong></td>
     </tr>
   `;
