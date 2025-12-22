@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const path = require("path");
 const fs = require("fs");
 const express = require("express");
@@ -52,7 +53,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "Frontend")));
 
 // Default route
-app.get("/", (req, res) => {
+app.get("/", (req, res) => {  
   res.sendFile(
     path.join(__dirname, "Frontend", "login", "login.html")
   );

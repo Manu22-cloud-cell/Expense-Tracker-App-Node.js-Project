@@ -6,6 +6,9 @@ const premiumMiddleware = require("../middleware/premiumMiddleware");
 
 
 router.get("/", authenticate, premiumMiddleware, reportController.getReports);
+router.get("/download", authenticate, premiumMiddleware, reportController.downloadReport);
+router.get("/history", authenticate, premiumMiddleware, reportController.getDownloadedReports);
+
 
 module.exports = router;
 

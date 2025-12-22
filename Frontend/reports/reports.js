@@ -1,4 +1,4 @@
-const API_BASE_URL="http://localhost:3000"
+const API_BASE_URL = "http://localhost:3000";
 
 const isPremium = localStorage.getItem("isPremium");
 
@@ -8,22 +8,45 @@ if (isPremium !== "true") {
   document.getElementById("download-btn").disabled = true;
 }
 
+//FETCH REPORT (VIEW ONLY)
+
 async function fetchReport() {
-  const type = document.getElementById("report-type").value;
+  try {
+    const type = document.getElementById("report-type").value;
+    const month = document.getElementById("month-input").value; // yyyy-mm
+    const year = document.getElementById("year-input").value;
 
-  const res = await axios.get(
-    `${API_BASE_URL}/reports?type=${type}`,
-    {
-      headers: { Authorization: localStorage.getItem("token") }
+    let url = `${API_BASE_URL}/reports?type=${type}`;
+
+    if (type === "monthly" && month) {
+      const [yyyy, mm] = month.split("-");
+      url += `&month=${mm}&year=${yyyy}`;
     }
-  );
 
-  if (type === "yearly") {
-    renderYearlyTable(res.data.data, res.data.total);
-  } else {
-    renderExpenseTable(res.data.expenses, res.data.totalExpense);
+    if (type === "yearly" && year) {
+      url += `&year=${year}`;
+    }
+
+    const res = await axios.get(url, {
+      headers: { Authorization: localStorage.getItem("token") }
+    });
+
+    document.getElementById("report-table").innerHTML = "";
+
+    if (type === "yearly") {
+      renderYearlyTable(res.data.data, res.data.total);
+    } else {
+      renderExpenseTable(res.data.expenses, res.data.totalExpense);
+    }
+
+  } catch (err) {
+    alert("Failed to fetch report");
+    console.error(err);
   }
 }
+
+//TABLE RENDERING
+
 function renderYearlyTable(data, total) {
   const monthNames = [
     "January", "February", "March", "April",
@@ -39,8 +62,7 @@ function renderYearlyTable(data, total) {
   `;
 
   data.forEach(row => {
-    const monthName = monthNames[row.month - 1]; // DB gives 1–12
-
+    const monthName = monthNames[row.month - 1];
     html += `
       <tr>
         <td>${monthName}</td>
@@ -59,7 +81,6 @@ function renderYearlyTable(data, total) {
   document.getElementById("report-table").innerHTML = html;
 }
 
-
 function renderExpenseTable(expenses, total) {
   let html = `
     <tr>
@@ -74,12 +95,12 @@ function renderExpenseTable(expenses, total) {
   expenses.forEach(e => {
     html += `
       <tr>
-      <td>${new Date(e.createdAt).toLocaleDateString()}</td>
-      <td>${e.description}</td>
-      <td>${e.category || "AI Selected"}</td>
-      <td>${e.note || "-"}</td>
-      <td>₹${e.amount}</td>
-    </tr>
+        <td>${new Date(e.createdAt).toLocaleDateString()}</td>
+        <td>${e.description}</td>
+        <td>${e.category || "AI Selected"}</td>
+        <td>${e.note || "-"}</td>
+        <td>₹${e.amount}</td>
+      </tr>
     `;
   });
 
@@ -93,18 +114,68 @@ function renderExpenseTable(expenses, total) {
   document.getElementById("report-table").innerHTML = html;
 }
 
-function downloadReport() {
-  let csv = "";
-  document.querySelectorAll("#report-table tr").forEach(row => {
-    const cols = row.querySelectorAll("td, th");
-    csv += [...cols].map(c => c.innerText).join(",") + "\n";
-  });
+//DOWNLOAD REPORT (S3)
 
-  const blob = new Blob([csv], { type: "text/csv" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "expense-report.csv";
-  link.click();
+async function downloadReport() {
+  try {
+    const type = document.getElementById("report-type").value;
+    const month = document.getElementById("month-input").value;
+    const year = document.getElementById("year-input").value;
+
+    let url = `${API_BASE_URL}/reports/download?type=${type}`;
+
+    if (type === "monthly" && month) {
+      url += `&month=${month}`;
+    }
+
+    if (type === "yearly" && year) {
+      url += `&year=${year}`;
+    }
+
+    const res = await axios.get(url, {
+      headers: { Authorization: localStorage.getItem("token") }
+    });
+
+    const container = document.getElementById("download-link-container");
+    container.innerHTML = `
+      <a href="${res.data.fileUrl}" target="_blank">
+        Download Report
+      </a>
+    `;
+
+    loadDownloadHistory();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to download report");
+  }
 }
 
 
+//DOWNLOAD HISTORY
+
+async function loadDownloadHistory() {
+  try {
+    const res = await axios.get(
+      `${API_BASE_URL}/reports/history`,
+      { headers: { Authorization: localStorage.getItem("token") } }
+    );
+
+    const list = document.getElementById("download-history");
+    list.innerHTML = "";
+
+    res.data.forEach(r => {
+      list.innerHTML += `
+        <li>
+          <a href="${r.fileUrl}" target="_blank">Download</a>
+          (${new Date(r.downloadedAt).toLocaleDateString()})
+        </li>
+      `;
+    });
+
+  } catch (err) {
+    console.error("Failed to load history", err);
+  }
+}
+
+//INIT
+loadDownloadHistory();

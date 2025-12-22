@@ -1,9 +1,10 @@
+const s3 = require("../services/s3");
+const DownloadedReport = require("../models/downloadedReport");
+
 const { Op, fn, col, where, literal } = require("sequelize");
 const Expense = require("../models/expenses");
 
-
 //GET /reports?type=daily|monthly|yearly
- 
 exports.getReports = async (req, res, next) => {
   try {
     const userId = req.user.userId; // from auth middleware
@@ -13,13 +14,13 @@ exports.getReports = async (req, res, next) => {
 
     if (type === "daily") {
       result = await getDailyReport(userId, date);
-    } 
+    }
     else if (type === "monthly") {
       result = await getMonthlyReport(userId, month, year);
-    } 
+    }
     else if (type === "yearly") {
       result = await getYearlyReport(userId, year);
-    } 
+    }
     else {
       const err = new Error("Invalid report type");
       err.statusCode = 400;
@@ -27,12 +28,104 @@ exports.getReports = async (req, res, next) => {
     }
 
     res.status(200).json(result);
-
-  } catch (error) {
-    error.statusCode = error.statusCode || 500;
-    next(error);
+    
+  }
+  catch (error) {
+    error.statusCode = error.statusCode || 500; next(error);
   }
 };
+
+//csv generator for daily/monthly report
+function generateCSV(expenses, total) {
+  let csv = "Date,Description,Category,Note,Amount\n";
+
+  expenses.forEach(e => {
+    csv += `${e.createdAt},${e.description},${e.category || "AI"},${e.note || "-"},${e.amount}\n`;
+  });
+
+  csv += `,,,,\nTotal,,,,${total}`;
+  return csv;
+}
+
+//csv generator for yearly report
+function generateYearlyCSV(data, total, year) {
+  const monthNames = [
+    "January", "February", "March", "April",
+    "May", "June", "July", "August",
+    "September", "October", "November", "December"
+  ];
+
+  let csv = `Year,${year}\n\n`;
+  csv += "Month,Expense\n";
+
+  data.forEach(row => {
+    const monthName = monthNames[row.get("month") - 1];
+    csv += `${monthName},${row.get("expense")}\n`;
+  });
+
+  csv += `\nTotal,${total}`;
+  return csv;
+}
+
+
+//download and upload to S3
+exports.downloadReport = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { type, year } = req.query;
+
+    let csv;
+    let fileName;
+
+    if (type === "daily" || type === "monthly") {
+      const report =
+        type === "daily"
+          ? await getDailyReport(userId)
+          : await getMonthlyReport(userId);
+
+      csv = generateCSV(report.expenses, report.totalExpense);
+      fileName = `expense-${type}-${userId}-${Date.now()}.csv`;
+    }
+
+    else if (type === "yearly") {
+      const report = await getYearlyReport(userId, year);
+
+      csv = generateYearlyCSV(report.data, report.total, year);
+      fileName = `expense-yearly-${userId}-${year || "current"}-${Date.now()}.csv`;
+    }
+
+    const result = await s3.upload({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: `reports/${fileName}`,
+      Body: csv,
+      ContentType: "text/csv",
+      ACL: "public-read"
+    }).promise();
+
+    await DownloadedReport.create({
+      userId,
+      fileUrl: result.Location,
+      downloadedAt: new Date()
+    });
+
+    res.status(200).json({ fileUrl: result.Location });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+//api to fetch past downloads
+exports.getDownloadedReports = async (req, res) => {
+  const reports = await DownloadedReport.findAll({
+    where: { userId: req.user.userId },
+    order: [["downloadedAt", "DESC"]]
+  });
+
+  res.json(reports);
+};
+
 
 //DAILY 
 
