@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require("uuid");
 const ForgotPasswordRequests = sequelize.define("ForgotPasswordRequests", {
   id: {
     type: DataTypes.UUID,
-    defaultValue: uuidv4,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
   isActive: {
