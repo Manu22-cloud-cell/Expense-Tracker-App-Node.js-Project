@@ -1,6 +1,5 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../utils/db-connection");
-const { v4: uuidv4 } = require("uuid");
 
 const ForgotPasswordRequests = sequelize.define("ForgotPasswordRequests", {
   id: {
