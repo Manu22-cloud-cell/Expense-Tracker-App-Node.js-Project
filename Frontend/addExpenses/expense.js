@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://18.61.156.250:3000";
+const API_BASE_URL = "http://18.61.156.250";
 
 let currentPage = 1;
 let ITEMS_PER_PAGE = Number(localStorage.getItem("itemsPerPage")) || 10;
