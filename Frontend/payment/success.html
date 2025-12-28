@@ -11,7 +11,7 @@
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get("orderId");
 
-axios.get(`http://18.61.156.250/payment/verify/${orderId}`)
+axios.get(`http://16.112.63.99/payment/verify/${orderId}`)
 .then(res => {
 
   document.getElementById("msg").innerHTML = 
