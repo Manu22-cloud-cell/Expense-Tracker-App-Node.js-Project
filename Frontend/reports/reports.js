@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://16.112.63.99";
+const API_BASE_URL = "http://16.112.58.170";
 
 const isPremium = localStorage.getItem("isPremium");
 
