@@ -203,8 +203,16 @@ document.getElementById("premium-btn").addEventListener("click", () => {
   axios
     .post(
       `${API_BASE_URL}/payment/create-order`,
-      { phone: "9999999999" },
-      { headers: { Authorization: localStorage.getItem("token") } }
+      {
+        phone: "9999999999",
+        email: "test@example.com"
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: localStorage.getItem("token")
+        }
+      }
     )
     .then((response) => {
       const cashfree = Cashfree({ mode: "sandbox" });
@@ -212,6 +220,7 @@ document.getElementById("premium-btn").addEventListener("click", () => {
     })
     .catch((err) => handleApiError(err, "Payment could not be started"));
 });
+
 
 document.getElementById("reports-btn").addEventListener("click", () => {
   window.location.href = "../reports/reports.html";
