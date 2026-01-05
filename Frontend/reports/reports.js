@@ -1,5 +1,26 @@
 const API_BASE_URL = "http://98.130.136.166";
 
+//CENTRAL ERROR HANDLER
+
+function handleApiError(error, fallbackMessage = "Something went wrong") {
+  if (!error.response) {
+    alert("Network error. Please check your internet connection.");
+    return;
+  }
+
+  const status = error.response.status;
+  const message = error.response.data?.message || fallbackMessage;
+
+  if (status === 401 || status === 403) {
+    alert("Session expired. Please login again.");
+    localStorage.clear();
+    window.location.href = "../login/login.html";
+    return;
+  }
+
+  alert(message);
+}
+
 const isPremium = localStorage.getItem("isPremium");
 
 if (isPremium !== "true") {
