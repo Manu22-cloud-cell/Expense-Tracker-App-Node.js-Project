@@ -117,20 +117,26 @@ function getAllExpenses(page = 1) {
       headers: { Authorization: localStorage.getItem("token") }
     })
     .then((response) => {
+      const { expenses, currentPage: backendPage, totalPages } = response.data;
+
+      // handle invalid page after delete
+      if (backendPage > totalPages && totalPages > 0) {
+        getAllExpenses(totalPages);
+        return;
+      }
+
       const expenseList = document.getElementById("expenses-list");
       expenseList.innerHTML = "";
 
-      response.data.expenses.forEach(displayExpenseOnScreen);
+      expenses.forEach(displayExpenseOnScreen);
 
-      renderPagination(
-        response.data.currentPage,
-        response.data.totalPages
-      );
+      renderPagination(backendPage, totalPages);
 
-      currentPage = response.data.currentPage;
+      currentPage = backendPage;
     })
     .catch((err) => handleApiError(err, "Unable to load expenses"));
 }
+
 
 //PAGINATION
 

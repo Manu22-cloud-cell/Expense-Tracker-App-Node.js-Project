@@ -61,41 +61,49 @@ const addExpenses = async (req, res, next) => {
 
 // GET ALL
 const getAllExpenses = async (req, res, next) => {
-    try {
-        const token = req.headers.authorization;
-
-        if (!token) {
-            const err = new Error("Authorization token missing");
-            err.statusCode = 401;
-            throw err;
-        }
-
-        const decoded = jwt.verify(token, process.env.SECRET_KEY);
-
-        // pagination inputs
-        const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 10;
-        const offset = (page - 1) * limit;
-
-        const { count, rows } = await Expenses.findAndCountAll({
-            where: { userId: decoded.userId },
-            limit,
-            offset,
-            order: [["createdAt", "DESC"]]
-        });
-
-        res.status(200).json({
-            expenses: rows,
-            currentPage: page,
-            totalPages: Math.ceil(count / limit),
-            totalExpenses: count
-        });
-
-    } catch (error) {
-        error.statusCode = error.statusCode || 500;
-        next(error);
+  try {
+    const token = req.headers.authorization;
+    if (!token) {
+      const err = new Error("Authorization token missing");
+      err.statusCode = 401;
+      throw err;
     }
+
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    // Get total count first
+    const count = await Expenses.count({
+      where: { userId: decoded.userId }
+    });
+
+    const totalPages = Math.ceil(count / limit) || 1;
+    const safePage = page > totalPages ? totalPages : page;
+
+    const offset = (safePage - 1) * limit;
+
+    const expenses = await Expenses.findAll({
+      where: { userId: decoded.userId },
+      limit,
+      offset,
+      order: [["createdAt", "DESC"]]
+    });
+
+    res.status(200).json({
+      expenses,
+      currentPage: safePage,
+      totalPages,
+      totalExpenses: count
+    });
+
+  } catch (error) {
+    error.statusCode = error.statusCode || 500;
+    next(error);
+  }
 };
+
 
 // UPDATE EXPENSE
 const updateExpense = async (req, res, next) => {
@@ -135,7 +143,7 @@ const updateExpense = async (req, res, next) => {
         res.status(200).json(updatedExpense);
 
     } catch (error) {
-        error.statusCode=500;
+        error.statusCode = 500;
         next(error);
     }
 };
