@@ -282,3 +282,25 @@ function getLeaderboard() {
     })
     .catch((err) => handleApiError(err, "Unable to load leaderboard"));
 }
+
+//Logout 
+
+function logoutUser() {
+  // Optional backend call (does nothing but keeps API clean)
+  axios
+    .post(
+      `${API_BASE_URL}/user/logout`,
+      {},
+      { headers: { Authorization: localStorage.getItem("token") } }
+    )
+    .finally(() => {
+      // Clear all auth-related data
+      localStorage.clear();
+
+      // Redirect to login page
+      window.location.href = "../login/login.html";
+    });
+}
+
+document.getElementById("logout-btn")?.addEventListener("click", logoutUser);
+

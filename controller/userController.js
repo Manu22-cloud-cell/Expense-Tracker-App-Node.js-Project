@@ -100,7 +100,23 @@ const userLogin = async (req, res, next) => {
   }
 };
 
+//LOGOUT
+
+const userLogout = async (req, res, next) => {
+  try {
+    // Stateless logout – frontend clears token
+    res.status(200).json({
+      message: "Logout successful"
+    });
+  } catch (error) {
+    error.statusCode = 500;
+    next(error);
+  }
+};
+
+
 module.exports = {
   userSignUp,
-  userLogin
+  userLogin,
+  userLogout
 };
