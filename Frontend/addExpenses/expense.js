@@ -45,10 +45,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const token = localStorage.getItem("token");
 
   if (!token) {
-    alert("Session expired. Please log in again.");
-    window.location.href = "../login/login.html";
+    window.location.replace("../login/login.html");
     return;
   }
+
+  //Token exists → show page
+  document.getElementById("protected-content").style.display = "block";
 
   const username = localStorage.getItem("username");
   const welcomeDiv = document.getElementById("welcomeBox");
@@ -89,15 +91,15 @@ function handleFormSubmit(event) {
 
   const request = editExpenseId
     ? axios.put(
-        `${API_BASE_URL}/expenses/update/${editExpenseId}`,
-        expenseDetails,
-        { headers: { Authorization: token } }
-      )
+      `${API_BASE_URL}/expenses/update/${editExpenseId}`,
+      expenseDetails,
+      { headers: { Authorization: token } }
+    )
     : axios.post(
-        `${API_BASE_URL}/expenses/add`,
-        expenseDetails,
-        { headers: { Authorization: token } }
-      );
+      `${API_BASE_URL}/expenses/add`,
+      expenseDetails,
+      { headers: { Authorization: token } }
+    );
 
   request
     .then(() => {
